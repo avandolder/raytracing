@@ -4,10 +4,23 @@ mod vec3;
 use ray::Ray;
 use vec3::Vec3;
 
+fn hit_sphere(center: Vec3, radius: f32, r: &Ray) -> bool {
+    let oc = r.origin() - center;
+    let a = r.direction().squared_length();
+    let b = 2. * oc.dot(r.direction());
+    let c = oc.squared_length() - radius*radius;
+    let discriminant = b*b - 4.*a*c;
+    discriminant > 0.
+}
+
 fn color(r: &Ray) -> Vec3 {
-    let unit_direction = r.direction().unit_vector();
-    let t = 0.5 * (unit_direction.y() + 1.);
-    Vec3(1., 1., 1.)*(1. - t) + Vec3(0.5, 0.7, 1.)*t
+    if hit_sphere(Vec3(0., 0., -1.), 0.5, r) {
+        Vec3(1., 0., 0.)
+    } else {
+        let unit_direction = r.direction().unit_vector();
+        let t = 0.5 * (unit_direction.y() + 1.);
+        Vec3(1., 1., 1.)*(1. - t) + Vec3(0.5, 0.7, 1.)*t
+    }
 }
 
 fn main() {
