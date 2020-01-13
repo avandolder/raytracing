@@ -28,9 +28,9 @@ fn reflect(v: Vec3, n: Vec3) -> Vec3 {
 fn refract(v: Vec3, n: Vec3, ni_over_nt: f32) -> Option<Vec3> {
     let uv = v.unit_vector();
     let dt = uv.dot(n);
-    let discriminant = 1. - ni_over_nt*ni_over_nt*(1. - dt*dt);
+    let discriminant = 1. - ni_over_nt * ni_over_nt * (1. - dt * dt);
     if discriminant > 0. {
-        Some(ni_over_nt*(uv - n*dt) - n*discriminant.sqrt())
+        Some(ni_over_nt * (uv - n * dt) - n * discriminant.sqrt())
     } else {
         None
     }
@@ -38,7 +38,7 @@ fn refract(v: Vec3, n: Vec3, ni_over_nt: f32) -> Option<Vec3> {
 
 fn schlick(cosine: f32, ref_idx: f32) -> f32 {
     let r0 = ((1. - ref_idx) / (1. + ref_idx)).powf(2.);
-    r0 + (1. - r0)*(1. - cosine).powf(5.)
+    r0 + (1. - r0) * (1. - cosine).powf(5.)
 }
 
 impl Material {
@@ -46,8 +46,10 @@ impl Material {
         match *self {
             Material::Dielectric(ref_idx) => {
                 let reflected = reflect(r_in.direction(), rec.normal);
-                let (outward_normal, ni_over_nt, cosine) = if r_in.direction().dot(rec.normal) > 0. {
-                    let cosine = ref_idx * r_in.direction().dot(rec.normal) / r_in.direction().length();
+                let (outward_normal, ni_over_nt, cosine) = if r_in.direction().dot(rec.normal) > 0.
+                {
+                    let cosine =
+                        ref_idx * r_in.direction().dot(rec.normal) / r_in.direction().length();
                     (-rec.normal, ref_idx, cosine)
                 } else {
                     let cosine = -r_in.direction().dot(rec.normal) / r_in.direction().length();
@@ -72,7 +74,7 @@ impl Material {
             Material::Metal(albedo, fuzz) => {
                 let fuzz = fuzz.min(1.);
                 let reflected = reflect(r_in.direction().unit_vector(), rec.normal);
-                let scattered = Ray::new(rec.p, reflected + fuzz*random_in_unit_sphere());
+                let scattered = Ray::new(rec.p, reflected + fuzz * random_in_unit_sphere());
                 if scattered.direction().dot(rec.normal) > 0. {
                     Some((albedo, scattered))
                 } else {
