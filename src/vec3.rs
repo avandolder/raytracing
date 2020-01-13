@@ -3,6 +3,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Vec3(pub f32, pub f32, pub f32);
 
+#[rustfmt::skip]
 impl Vec3 {
     pub fn x(&self) -> f32 { self.0 }
     pub fn y(&self) -> f32 { self.1 }
@@ -12,11 +13,11 @@ impl Vec3 {
     pub fn b(&self) -> f32 { self.2 }
 
     pub fn length(&self) -> f32 {
-        (self.0*self.0 + self.1*self.1 + self.2*self.2).sqrt()
+        (self.0 * self.0 + self.1 * self.1 + self.2 * self.2).sqrt()
     }
 
     pub fn squared_length(&self) -> f32 {
-        (self.0*self.0 + self.1*self.1 + self.2*self.2)
+        (self.0 * self.0 + self.1 * self.1 + self.2 * self.2)
     }
 
     pub fn make_unit_vector(&mut self) {
@@ -31,14 +32,14 @@ impl Vec3 {
     }
 
     pub fn dot(&self, other: Self) -> f32 {
-        self.0*other.0 + self.1*other.1 + self.2*other.2
+        self.0 * other.0 + self.1 * other.1 + self.2 * other.2
     }
 
     pub fn cross(&self, other: Self) -> Self {
         Vec3(
-            self.1*other.2 - self.2*other.1,
-            self.2*other.0 - self.0*other.2,
-            self.0*other.1 - self.1*other.0,
+            self.1 * other.2 - self.2 * other.1,
+            self.2 * other.0 - self.0 * other.2,
+            self.0 * other.1 - self.1 * other.0,
         )
     }
 }
