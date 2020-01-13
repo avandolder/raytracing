@@ -42,7 +42,7 @@ impl Hittable for Sphere {
                 });
             }
         }
-        
+
         None
     }
 }
