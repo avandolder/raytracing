@@ -41,6 +41,7 @@ fn main() {
         Sphere::new(Vec3(0., -100.5, -1.), 100., Material::Diffuse(Vec3(0.8, 0.8, 0.))),
         Sphere::new(Vec3(1., 0., -1.), 0.5, Material::Metal(Vec3(0.8, 0.6, 0.2), 0.)),
         Sphere::new(Vec3(-1., 0., -1.), 0.5, Material::Dielectric(1.5)),
+        Sphere::new(Vec3(-1., 0., -1.), -0.45, Material::Dielectric(1.5)),
     ];
     let world: Vec<&dyn Hittable> = spheres.iter().map(|s| s as &dyn Hittable).collect();
     let cam = Camera::new();

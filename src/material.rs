@@ -36,19 +36,31 @@ fn refract(v: Vec3, n: Vec3, ni_over_nt: f32) -> Option<Vec3> {
     }
 }
 
+fn schlick(cosine: f32, ref_idx: f32) -> f32 {
+    let r0 = ((1. - ref_idx) / (1. + ref_idx)).powf(2.);
+    r0 + (1. - r0)*(1. - cosine).powf(5.)
+}
+
 impl Material {
     pub fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Vec3, Ray)> {
         match *self {
             Material::Dielectric(ref_idx) => {
                 let reflected = reflect(r_in.direction(), rec.normal);
-                let (outward_normal, ni_over_nt) = if r_in.direction().dot(rec.normal) > 0. {
-                    (-rec.normal, ref_idx)
+                let (outward_normal, ni_over_nt, cosine) = if r_in.direction().dot(rec.normal) > 0. {
+                    let cosine = ref_idx * r_in.direction().dot(rec.normal) / r_in.direction().length();
+                    (-rec.normal, ref_idx, cosine)
                 } else {
-                    (rec.normal, 1. / ref_idx)
+                    let cosine = -r_in.direction().dot(rec.normal) / r_in.direction().length();
+                    (rec.normal, 1. / ref_idx, cosine)
                 };
 
                 if let Some(refracted) = refract(r_in.direction(), outward_normal, ni_over_nt) {
-                    Some((Vec3(1., 1., 1.), Ray::new(rec.p, refracted)))
+                    let reflect_prob = schlick(cosine, ref_idx);
+                    if thread_rng().gen::<f32>() < reflect_prob {
+                        Some((Vec3(1., 1., 1.), Ray::new(rec.p, reflected)))
+                    } else {
+                        Some((Vec3(1., 1., 1.), Ray::new(rec.p, refracted)))
+                    }
                 } else {
                     Some((Vec3(1., 1., 1.), Ray::new(rec.p, reflected)))
                 }
