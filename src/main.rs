@@ -37,20 +37,21 @@ fn main() {
 
     #[rustfmt::skip]
     let spheres = [
-        Sphere::new(Vec3(0., 0., -1.), 0.5, Material::Diffuse(Vec3(0.8, 0.3, 0.3))),
+        Sphere::new(Vec3(0., 0., -1.), 0.5, Material::Diffuse(Vec3(0.1, 0.2, 0.5))),
         Sphere::new(Vec3(0., -100.5, -1.), 100., Material::Diffuse(Vec3(0.8, 0.8, 0.))),
-        Sphere::new(Vec3(1., 0., -1.), 0.5, Material::Metal(Vec3(0.8, 0.6, 0.2), 1.)),
-        Sphere::new(Vec3(-1., 0., -1.), 0.5, Material::Metal(Vec3(0.8, 0.8, 0.8), 0.3)),
+        Sphere::new(Vec3(1., 0., -1.), 0.5, Material::Metal(Vec3(0.8, 0.6, 0.2), 0.)),
+        Sphere::new(Vec3(-1., 0., -1.), 0.5, Material::Dielectric(1.5)),
     ];
     let world: Vec<&dyn Hittable> = spheres.iter().map(|s| s as &dyn Hittable).collect();
     let cam = Camera::new();
+    let mut rng = thread_rng();
 
     for j in (0..ny).rev() {
         for i in 0..nx {
             let mut col = Vec3::default();
             for _ in 0..ns {
-                let u = (i as f32 + thread_rng().gen::<f32>()) / nx as f32;
-                let v = (j as f32 + thread_rng().gen::<f32>()) / ny as f32;
+                let u = (i as f32 + rng.gen::<f32>()) / nx as f32;
+                let v = (j as f32 + rng.gen::<f32>()) / ny as f32;
                 let r = cam.get_ray(u, v);
                 col += color(&r, &world, 0);
             }
