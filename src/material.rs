@@ -6,7 +6,7 @@ use crate::vec3::Vec3;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Material {
-    Dielectric(f32),
+    Glass(f32),
     Diffuse(Vec3),
     Metal(Vec3, f32),
 }
@@ -44,7 +44,7 @@ fn schlick(cosine: f32, ref_idx: f32) -> f32 {
 impl Material {
     pub fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Vec3, Ray)> {
         match *self {
-            Material::Dielectric(ref_idx) => {
+            Material::Glass(ref_idx) => {
                 let reflected = reflect(r_in.direction(), rec.normal);
                 let (outward_normal, ni_over_nt, cosine) = if r_in.direction().dot(rec.normal) > 0.
                 {
