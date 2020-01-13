@@ -44,13 +44,21 @@ fn main() {
         Sphere::new(Vec3(-1., 0., -1.), -0.45, Material::Dielectric(1.5)),
     ];
     let world: Vec<&dyn Hittable> = spheres.iter().map(|s| s as &dyn Hittable).collect();
+
+    let lookfrom = Vec3(3., 3., 2.);
+    let lookat = Vec3(0., 0., -1.);
+    let dist_to_focus = (lookfrom - lookat).length();
+    let aperture = 2.;
     let cam = Camera::new(
-        Vec3(-2., 2., 1.),
-        Vec3(0., 0., -1.),
+        lookfrom,
+        lookat,
         Vec3(0., 1., 0.),
-        90.,
+        20.,
         (nx as f32) / (ny as f32),
+        aperture,
+        dist_to_focus,
     );
+
     let mut rng = thread_rng();
 
     for j in (0..ny).rev() {
