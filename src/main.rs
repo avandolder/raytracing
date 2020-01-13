@@ -12,13 +12,22 @@ use ray::Ray;
 use sphere::Sphere;
 use vec3::Vec3;
 
+fn random_f32() -> f32 {
+    thread_rng().gen::<f32>()
+}
+
+fn random_in_unit_sphere() -> Vec3 {
+    let mut p = Vec3(1., 1., 1.);
+    while p.squared_length() >= 1. {
+        p = 2. * Vec3(random_f32(), random_f32(), random_f32()) - Vec3(1., 1., 1.);
+    }
+    p
+}
+
 fn color(r: &Ray, world: &Vec<&dyn Hittable>) -> Vec3 {
-    if let Some(rec) = world.hit(r, 0.0, std::f32::MAX) {
-        0.5 * Vec3(
-            rec.normal.x() + 1.,
-            rec.normal.y() + 1.,
-            rec.normal.z() + 1.,
-        )
+    if let Some(rec) = world.hit(r, 0.001, std::f32::MAX) {
+        let target = rec.p + rec.normal + random_in_unit_sphere();
+        0.5 * color(&Ray::new(rec.p, target - rec.p), world)
     } else {
         let unit_direction = r.direction().unit_vector();
         let t = 0.5 * (unit_direction.y() + 1.);
@@ -43,12 +52,13 @@ fn main() {
         for i in 0..nx {
             let mut col = Vec3::default();
             for _ in 0..ns {
-                let u = (i as f32 + thread_rng().gen::<f32>()) / nx as f32;
-                let v = (j as f32 + thread_rng().gen::<f32>()) / ny as f32;
+                let u = (i as f32 + random_f32()) / nx as f32;
+                let v = (j as f32 + random_f32()) / ny as f32;
                 let r = cam.get_ray(u, v);
                 col += color(&r, &world);
             }
             col /= ns as f32;
+            col = Vec3(col.0.sqrt(), col.1.sqrt(), col.2.sqrt());
 
             let (ir, ig, ib) = (
                 (255.99 * col.0) as i32,
