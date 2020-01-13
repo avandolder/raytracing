@@ -14,7 +14,50 @@ use ray::Ray;
 use sphere::Sphere;
 use vec3::Vec3;
 
-fn color(r: &Ray, world: &Vec<&dyn Hittable>, depth: i32) -> Vec3 {
+fn random_scene() -> Vec<Box<dyn Hittable>> {
+    let n = 500;
+    let mut rng = thread_rng();
+    let mut world: Vec<Box<dyn Hittable>> = Vec::with_capacity(n + 1);
+    world.push(Box::new(Sphere::new(Vec3(0., -1000., 0.), 1000., Material::Diffuse(Vec3(0.5, 0.5, 0.5)))));
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let center = Vec3(a as f32 + 0.9*rng.gen::<f32>(), 0.2, b as f32 + 0.9*rng.gen::<f32>());
+            if (center - Vec3(4., 0.2, 0.)).length() <= 0.9 {
+                continue;
+            }
+
+            let choose_mat = rng.gen::<f32>();
+            if choose_mat < 0.8 {
+                world.push(Box::new(Sphere::new(center, 0.2,
+                    Material::Diffuse(Vec3(
+                        rng.gen::<f32>() * rng.gen::<f32>(),
+                        rng.gen::<f32>() * rng.gen::<f32>(),
+                        rng.gen::<f32>() * rng.gen::<f32>(),
+                    ))
+                )));
+            } else if choose_mat < 0.95 {
+                world.push(Box::new(Sphere::new(center, 0.2,
+                    Material::Metal(Vec3(
+                        0.5 * (1. + rng.gen::<f32>()),
+                        0.5 * (1. + rng.gen::<f32>()),
+                        0.5 * (1. + rng.gen::<f32>())),
+                        0.5 * rng.gen::<f32>(),
+                    )
+                )));
+            } else {
+                world.push(Box::new(Sphere::new(center, 0.2, Material::Glass(1.5))));
+            }
+        }
+    }
+
+    world.push(Box::new(Sphere::new(Vec3(0., 1., 0.), 1., Material::Glass(1.5))));
+    world.push(Box::new(Sphere::new(Vec3(-4., 1., 0.), 1., Material::Diffuse(Vec3(0.4, 0.2, 0.1)))));
+    world.push(Box::new(Sphere::new(Vec3(4., 1., 0.), 1., Material::Metal(Vec3(0.7, 0.6, 0.5), 0.))));
+    world
+}
+
+fn color(r: &Ray, world: &Vec<Box<dyn Hittable>>, depth: i32) -> Vec3 {
     if let Some(rec) = world.hit(r, 0.001, std::f32::MAX) {
         match rec.mat.scatter(&r, &rec) {
             Some((attenuation, scattered)) if depth < 50 => {
@@ -30,25 +73,17 @@ fn color(r: &Ray, world: &Vec<&dyn Hittable>, depth: i32) -> Vec3 {
 }
 
 fn main() {
-    let nx = 200;
-    let ny = 100;
-    let ns = 100;
+    let nx = 1200;
+    let ny = 800;
+    let ns = 10;
     println!("P3\n{} {}\n255", nx, ny);
 
-    #[rustfmt::skip]
-    let spheres = [
-        Sphere::new(Vec3(0., 0., -1.), 0.5, Material::Diffuse(Vec3(0.1, 0.2, 0.5))),
-        Sphere::new(Vec3(0., -100.5, -1.), 100., Material::Diffuse(Vec3(0.8, 0.8, 0.))),
-        Sphere::new(Vec3(1., 0., -1.), 0.5, Material::Metal(Vec3(0.8, 0.6, 0.2), 0.)),
-        Sphere::new(Vec3(-1., 0., -1.), 0.5, Material::Glass(1.5)),
-        Sphere::new(Vec3(-1., 0., -1.), -0.45, Material::Glass(1.5)),
-    ];
-    let world: Vec<&dyn Hittable> = spheres.iter().map(|s| s as &dyn Hittable).collect();
+    let world = random_scene();
 
-    let lookfrom = Vec3(3., 3., 2.);
-    let lookat = Vec3(0., 0., -1.);
-    let dist_to_focus = (lookfrom - lookat).length();
-    let aperture = 2.;
+    let lookfrom = Vec3(13., 2., 3.);
+    let lookat = Vec3(0., 0., 0.);
+    let dist_to_focus = 10.;
+    let aperture = 0.1;
     let cam = Camera::new(
         lookfrom,
         lookat,

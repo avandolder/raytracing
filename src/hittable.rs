@@ -20,3 +20,11 @@ impl Hittable for Vec<&dyn Hittable> {
             .min_by(|r1, r2| r1.t.partial_cmp(&r2.t).unwrap())
     }
 }
+
+impl Hittable for Vec<Box<dyn Hittable>> {
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+        self.iter()
+            .filter_map(|item| item.hit(r, t_min, t_max))
+            .min_by(|r1, r2| r1.t.partial_cmp(&r2.t).unwrap())
+    }
+}
