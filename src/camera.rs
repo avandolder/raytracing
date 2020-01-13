@@ -9,12 +9,16 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new() -> Self {
+    pub fn new(vfov: f32, aspect: f32) -> Self {
+        let theta = vfov * std::f32::consts::PI / 180.;
+        let half_height = (theta / 2.).tan();
+        let half_width = aspect * half_height;
+
         Camera {
-            lower_left_corner: Vec3(-2.0, -1.0, -1.0),
-            horizontal: Vec3(4.0, 0.0, 0.0),
-            vertical: Vec3(0.0, 2.0, 0.0),
-            origin: Vec3(0.0, 0.0, 0.0),
+            lower_left_corner: Vec3(-half_width, -half_height, -1.),
+            horizontal: Vec3(2. * half_width, 0., 0.),
+            vertical: Vec3(0., 2. * half_height, 0.),
+            origin: Vec3(0., 0., 0.),
         }
     }
 
