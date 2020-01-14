@@ -59,22 +59,26 @@ impl Material {
                 if let Some(refracted) = refract(r_in.direction(), outward_normal, ni_over_nt) {
                     let reflect_prob = schlick(cosine, ref_idx);
                     if thread_rng().gen::<f32>() < reflect_prob {
-                        Some((Vec3(1., 1., 1.), Ray::new(rec.p, reflected)))
+                        Some((Vec3(1., 1., 1.), Ray::new(rec.p, reflected, r_in.time())))
                     } else {
-                        Some((Vec3(1., 1., 1.), Ray::new(rec.p, refracted)))
+                        Some((Vec3(1., 1., 1.), Ray::new(rec.p, refracted, r_in.time())))
                     }
                 } else {
-                    Some((Vec3(1., 1., 1.), Ray::new(rec.p, reflected)))
+                    Some((Vec3(1., 1., 1.), Ray::new(rec.p, reflected, r_in.time())))
                 }
             }
             Material::Diffuse(albedo) => {
                 let target = rec.p + rec.normal + random_in_unit_sphere();
-                Some((albedo, Ray::new(rec.p, target - rec.p)))
+                Some((albedo, Ray::new(rec.p, target - rec.p, r_in.time())))
             }
             Material::Metal(albedo, fuzz) => {
                 let fuzz = fuzz.min(1.);
                 let reflected = reflect(r_in.direction().unit_vector(), rec.normal);
-                let scattered = Ray::new(rec.p, reflected + fuzz * random_in_unit_sphere());
+                let scattered = Ray::new(
+                    rec.p,
+                    reflected + fuzz * random_in_unit_sphere(),
+                    r_in.time(),
+                );
                 if scattered.direction().dot(rec.normal) > 0. {
                     Some((albedo, scattered))
                 } else {

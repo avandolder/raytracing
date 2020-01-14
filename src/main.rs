@@ -1,6 +1,7 @@
 mod camera;
 mod hittable;
 mod material;
+mod moving_sphere;
 mod ray;
 mod sphere;
 mod vec3;
@@ -10,6 +11,7 @@ use rand::prelude::*;
 use camera::Camera;
 use hittable::Hittable;
 use material::Material;
+use moving_sphere::MovingSphere;
 use ray::Ray;
 use sphere::Sphere;
 use vec3::Vec3;
@@ -37,8 +39,11 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
 
             let choose_mat = rng.gen::<f32>();
             if choose_mat < 0.8 {
-                world.push(Box::new(Sphere::new(
+                world.push(Box::new(MovingSphere::new(
                     center,
+                    center + Vec3(0., 0.5 * rng.gen::<f32>(), 0.),
+                    0.,
+                    1.,
                     0.2,
                     Material::Diffuse(Vec3(
                         rng.gen::<f32>() * rng.gen::<f32>(),
@@ -109,7 +114,7 @@ fn main() {
     let lookfrom = Vec3(13., 2., 3.);
     let lookat = Vec3(0., 0., 0.);
     let dist_to_focus = 10.;
-    let aperture = 0.1;
+    let aperture = 0.;
     let cam = Camera::new(
         lookfrom,
         lookat,
@@ -118,6 +123,8 @@ fn main() {
         (nx as f32) / (ny as f32),
         aperture,
         dist_to_focus,
+        0.,
+        1.,
     );
 
     let mut rng = thread_rng();
