@@ -1,3 +1,5 @@
+mod aabb;
+mod bvh;
 mod camera;
 mod hittable;
 mod material;
@@ -8,6 +10,7 @@ mod vec3;
 
 use rand::prelude::*;
 
+use bvh::BVH;
 use camera::Camera;
 use hittable::Hittable;
 use material::Material;
@@ -26,8 +29,8 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
         Material::Diffuse(Vec3::new(0.5, 0.5, 0.5)),
     )));
 
-    for a in -11..11 {
-        for b in -11..11 {
+    for a in -5..5 {
+        for b in -5..5 {
             let center = Vec3::new(
                 a as f32 + 0.9 * rng.gen::<f32>(),
                 0.2,
@@ -39,11 +42,8 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
 
             let choose_mat = rng.gen::<f32>();
             if choose_mat < 0.8 {
-                world.push(Box::new(MovingSphere::new(
+                world.push(Box::new(Sphere::new(
                     center,
-                    center + Vec3::new(0., 0.5 * rng.gen::<f32>(), 0.),
-                    0.,
-                    1.,
                     0.2,
                     Material::Diffuse(Vec3::new(
                         rng.gen::<f32>() * rng.gen::<f32>(),
@@ -88,7 +88,7 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
     world
 }
 
-fn color(r: &Ray, world: &Vec<Box<dyn Hittable>>, depth: i32) -> Vec3 {
+fn color(r: &Ray, world: &dyn Hittable, depth: i32) -> Vec3 {
     if let Some(rec) = world.hit(r, 0.001, std::f32::MAX) {
         match rec.mat.scatter(&r, &rec) {
             Some((attenuation, scattered)) if depth < 50 => {
@@ -104,12 +104,13 @@ fn color(r: &Ray, world: &Vec<Box<dyn Hittable>>, depth: i32) -> Vec3 {
 }
 
 fn main() {
-    let nx = 1200;
-    let ny = 800;
-    let ns = 10;
+    let nx = 600;
+    let ny = 400;
+    let ns = 50;
     println!("P3\n{} {}\n255", nx, ny);
 
-    let world = random_scene();
+    let mut world = random_scene();
+    let bvh = BVH::new(&mut world, 0., 0.);
 
     let lookfrom = Vec3::new(13., 2., 3.);
     let lookat = Vec3::new(0., 0., 0.);
@@ -136,7 +137,7 @@ fn main() {
                 let u = (i as f32 + rng.gen::<f32>()) / nx as f32;
                 let v = (j as f32 + rng.gen::<f32>()) / ny as f32;
                 let r = cam.get_ray(u, v);
-                col += color(&r, &world, 0);
+                col += color(&r, &bvh, 0);
             }
             col /= ns as f32;
             col = Vec3::new(col[0].sqrt(), col[1].sqrt(), col[2].sqrt());
