@@ -17,11 +17,11 @@ pub struct Camera {
 }
 
 fn random_in_unit_disk() -> Vec3 {
-    let mut p = Vec3(1., 1., 1.);
+    let mut p = Vec3::new(1., 1., 1.);
     let mut rng = thread_rng();
     while p.squared_length() >= 1. {
-        let v = Vec3(rng.gen::<f32>(), rng.gen::<f32>(), 0.);
-        p = 2. * v - Vec3(1., 1., 0.);
+        let v = Vec3::new(rng.gen::<f32>(), rng.gen::<f32>(), 0.);
+        p = 2. * v - Vec3::new(1., 1., 0.);
     }
     p
 }
