@@ -79,7 +79,10 @@ impl Material {
             }
             Material::Diffuse(albedo) => {
                 let target = rec.p + rec.normal + random_in_unit_sphere();
-                Some((albedo.value(0., 0., rec.p), Ray::new(rec.p, target - rec.p, r_in.time())))
+                Some((
+                    albedo.value(0., 0., rec.p),
+                    Ray::new(rec.p, target - rec.p, r_in.time()),
+                ))
             }
             Material::Metal(albedo, fuzz) => {
                 let fuzz = fuzz.min(1.);
