@@ -155,9 +155,9 @@ fn color(r: &Ray, world: &dyn Hittable, depth: i32) -> Vec3 {
 }
 
 fn main() {
-    let nx = 300;
-    let ny = 200;
-    let ns = 10;
+    let nx = 600;
+    let ny = 400;
+    let ns = 20;
 
     let world = BVH::new(&mut random_scene(), 0., 1.);
 
@@ -180,19 +180,17 @@ fn main() {
     let mut rng = rand::thread_rng();
     let mut imgbuf = image::ImageBuffer::new(nx, ny);
 
-    for j in (0..ny).rev() {
-        for i in 0..nx {
-            let color = (0..ns).fold(Vec3::default(), |col, _| {
-                let u = (i as f32 + rng.gen::<f32>()) / nx as f32;
-                let v = (j as f32 + rng.gen::<f32>()) / ny as f32;
-                col + color(&cam.get_ray(u, v), &world, 0)
-            }) / ns as f32;
-            let color = Vec3::new(color[0].sqrt(), color[1].sqrt(), color[2].sqrt());
-            let color = Vec3::new(255.99, 255.99, 255.99) * color;
+    for (i, j, pixel) in imgbuf.enumerate_pixels_mut() {
+        let j = ny - j - 1; // Flip points vertically.
+        let color = (0..ns).fold(Vec3::default(), |col, _| {
+            let u = (i as f32 + rng.gen::<f32>()) / nx as f32;
+            let v = (j as f32 + rng.gen::<f32>()) / ny as f32;
+            col + color(&cam.get_ray(u, v), &world, 0)
+        }) / ns as f32;
+        let color = Vec3::new(color[0].sqrt(), color[1].sqrt(), color[2].sqrt());
+        let color = Vec3::new(255.99, 255.99, 255.99) * color;
 
-            let pixel = image::Rgb([color[0] as u8, color[1] as u8, color[2] as u8]);
-            imgbuf.put_pixel(i, ny - j - 1, pixel);
-        }
+        *pixel = image::Rgb([color[0] as u8, color[1] as u8, color[2] as u8]);
     }
 
     imgbuf.save("out.png").unwrap();
