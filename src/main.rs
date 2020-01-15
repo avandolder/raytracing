@@ -6,6 +6,7 @@ mod material;
 mod moving_sphere;
 mod ray;
 mod sphere;
+mod texture;
 mod vec3;
 
 use rand::prelude::*;
@@ -17,16 +18,22 @@ use material::Material;
 use moving_sphere::MovingSphere;
 use ray::Ray;
 use sphere::Sphere;
+use texture::Texture;
 use vec3::Vec3;
 
 fn random_scene() -> Vec<Box<dyn Hittable>> {
     let n = 500;
     let mut rng = thread_rng();
     let mut world: Vec<Box<dyn Hittable>> = Vec::with_capacity(n + 1);
+
+    let checker = Texture::checker(
+        Texture::solid((0.2, 0.3, 0.1)),
+        Texture::solid((0.9, 0.9, 0.9)),
+    );
     world.push(Box::new(Sphere::new(
         Vec3::new(0., -1000., 0.),
         1000.,
-        Material::Diffuse(Vec3::new(0.5, 0.5, 0.5)),
+        Material::Diffuse(checker),
     )));
 
     for a in -11..11 {
@@ -48,11 +55,11 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
                     0.,
                     1.,
                     0.2,
-                    Material::Diffuse(Vec3::new(
+                    Material::Diffuse(Texture::solid(Vec3::new(
                         rng.gen::<f32>() * rng.gen::<f32>(),
                         rng.gen::<f32>() * rng.gen::<f32>(),
                         rng.gen::<f32>() * rng.gen::<f32>(),
-                    )),
+                    ))),
                 )));
             } else if choose_mat < 0.95 {
                 world.push(Box::new(Sphere::new(
@@ -81,7 +88,7 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
     world.push(Box::new(Sphere::new(
         Vec3::new(-4., 1., 0.),
         1.,
-        Material::Diffuse(Vec3::new(0.4, 0.2, 0.1)),
+        Material::Diffuse(Texture::solid(Vec3::new(0.4, 0.2, 0.1))),
     )));
     world.push(Box::new(Sphere::new(
         Vec3::new(4., 1., 0.),
@@ -89,6 +96,25 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
         Material::Metal(Vec3::new(0.7, 0.6, 0.5), 0.),
     )));
     world
+}
+
+fn two_spheres() -> Vec<Box<dyn Hittable>> {
+    let checker = Texture::checker(
+        Texture::solid((0.2, 0.3, 0.1)),
+        Texture::solid((0.9, 0.9, 0.9)),
+    );
+    vec![
+        Box::new(Sphere::new(
+            Vec3::new(0., -10., 0.),
+            10.,
+            Material::Diffuse(checker.clone()),
+        )),
+        Box::new(Sphere::new(
+            Vec3::new(0., 10., 0.),
+            10.,
+            Material::Diffuse(checker.clone()),
+        )),
+    ]
 }
 
 fn color(r: &Ray, world: &dyn Hittable, depth: i32) -> Vec3 {
@@ -109,10 +135,10 @@ fn color(r: &Ray, world: &dyn Hittable, depth: i32) -> Vec3 {
 fn main() {
     let nx = 600;
     let ny = 400;
-    let ns = 10;
+    let ns = 100;
     println!("P3\n{} {}\n255", nx, ny);
 
-    let world = BVH::new(&mut random_scene(), 0., 1.);
+    let world = BVH::new(&mut two_spheres(), 0., 1.);
 
     let lookfrom = Vec3::new(13., 2., 3.);
     let lookat = Vec3::new(0., 0., 0.);

@@ -37,7 +37,7 @@ impl Hittable for Sphere {
                     t,
                     p,
                     normal: (p - self.center) / self.radius,
-                    mat: self.mat,
+                    mat: self.mat.clone(),
                 });
             }
 
@@ -48,7 +48,7 @@ impl Hittable for Sphere {
                     t,
                     p,
                     normal: (p - self.center) / self.radius,
-                    mat: self.mat,
+                    mat: self.mat.clone(),
                 });
             }
         }

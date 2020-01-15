@@ -55,7 +55,7 @@ impl Hittable for MovingSphere {
                     t,
                     p,
                     normal: (p - self.center(r.time())) / self.radius,
-                    mat: self.mat,
+                    mat: self.mat.clone(),
                 });
             }
 
@@ -66,7 +66,7 @@ impl Hittable for MovingSphere {
                     t,
                     p,
                     normal: (p - self.center(r.time())) / self.radius,
-                    mat: self.mat,
+                    mat: self.mat.clone(),
                 });
             }
         }

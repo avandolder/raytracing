@@ -2,12 +2,13 @@ use rand::prelude::*;
 
 use crate::hittable::HitRecord;
 use crate::ray::Ray;
+use crate::texture::Texture;
 use crate::vec3::Vec3;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum Material {
     Glass(f32),
-    Diffuse(Vec3),
+    Diffuse(Texture),
     Metal(Vec3, f32),
 }
 
@@ -43,21 +44,21 @@ fn schlick(cosine: f32, ref_idx: f32) -> f32 {
 
 impl Material {
     pub fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Vec3, Ray)> {
-        match *self {
+        match self {
             Material::Glass(ref_idx) => {
                 let reflected = reflect(r_in.direction(), rec.normal);
                 let (outward_normal, ni_over_nt, cosine) = if r_in.direction().dot(rec.normal) > 0.
                 {
                     let cosine =
                         ref_idx * r_in.direction().dot(rec.normal) / r_in.direction().length();
-                    (-rec.normal, ref_idx, cosine)
+                    (-rec.normal, *ref_idx, cosine)
                 } else {
                     let cosine = -r_in.direction().dot(rec.normal) / r_in.direction().length();
-                    (rec.normal, 1. / ref_idx, cosine)
+                    (rec.normal, 1. / *ref_idx, cosine)
                 };
 
                 if let Some(refracted) = refract(r_in.direction(), outward_normal, ni_over_nt) {
-                    let reflect_prob = schlick(cosine, ref_idx);
+                    let reflect_prob = schlick(cosine, *ref_idx);
                     if thread_rng().gen::<f32>() < reflect_prob {
                         Some((
                             Vec3::new(1., 1., 1.),
@@ -78,7 +79,7 @@ impl Material {
             }
             Material::Diffuse(albedo) => {
                 let target = rec.p + rec.normal + random_in_unit_sphere();
-                Some((albedo, Ray::new(rec.p, target - rec.p, r_in.time())))
+                Some((albedo.value(0., 0., rec.p), Ray::new(rec.p, target - rec.p, r_in.time())))
             }
             Material::Metal(albedo, fuzz) => {
                 let fuzz = fuzz.min(1.);
@@ -89,7 +90,7 @@ impl Material {
                     r_in.time(),
                 );
                 if scattered.direction().dot(rec.normal) > 0. {
-                    Some((albedo, scattered))
+                    Some((*albedo, scattered))
                 } else {
                     None
                 }
