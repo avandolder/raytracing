@@ -168,12 +168,6 @@ impl DivAssign<f32> for Vec3 {
     }
 }
 
-impl From<(f32, f32, f32)> for Vec3 {
-    fn from((x, y, z): (f32, f32, f32)) -> Self {
-        Vec3::new(x, y, z)
-    }
-}
-
 impl Neg for Vec3 {
     type Output = Vec3;
 
@@ -188,5 +182,17 @@ impl Index<usize> for Vec3 {
     #[inline(always)]
     fn index(&self, idx: usize) -> &f32 {
         &self.0[idx]
+    }
+}
+
+impl From<(f32, f32, f32)> for Vec3 {
+    fn from((x, y, z): (f32, f32, f32)) -> Self {
+        Vec3::new(x, y, z)
+    }
+}
+
+impl From<(i32, i32, i32)> for Vec3 {
+    fn from((x, y, z): (i32, i32, i32)) -> Self {
+        Vec3::new(x as f32, y as f32, z as f32)
     }
 }

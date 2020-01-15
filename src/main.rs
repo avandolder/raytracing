@@ -1,6 +1,7 @@
 mod aabb;
 mod bvh;
 mod camera;
+mod cornellbox;
 mod hittable;
 mod material;
 mod moving_sphere;
@@ -16,6 +17,7 @@ use rand::Rng;
 
 use bvh::BVH;
 use camera::Camera;
+use cornellbox::CornellBox;
 use hittable::{Hittable, flip_normals};
 use material::Material;
 use moving_sphere::MovingSphere;
@@ -165,6 +167,8 @@ fn cornell_box() -> Vec<Box<dyn Hittable>> {
         flip_normals(XZRect::new(0., 555., 0., 555., 555., white.clone())),
         Box::new(XZRect::new(0., 555., 0., 555., 0., white.clone())),
         flip_normals(XYRect::new(0., 555., 0., 555., 555., white.clone())),
+        Box::new(CornellBox::new((130, 0, 65), (295, 165, 230), white.clone())),
+        Box::new(CornellBox::new((265, 0, 295), (430, 330, 460), white.clone())),
     ]
 }
 
