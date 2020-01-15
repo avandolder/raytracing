@@ -4,6 +4,7 @@ mod camera;
 mod hittable;
 mod material;
 mod moving_sphere;
+mod perlin;
 mod ray;
 mod sphere;
 mod texture;
@@ -117,6 +118,21 @@ fn two_spheres() -> Vec<Box<dyn Hittable>> {
     ]
 }
 
+fn two_perlin_spheres() -> Vec<Box<dyn Hittable>> {
+    vec![
+        Box::new(Sphere::new(
+            Vec3::new(0., -1000., 0.),
+            1000.,
+            Material::Diffuse(Texture::noise(4.)),
+        )),
+        Box::new(Sphere::new(
+            Vec3::new(0., 2., 0.),
+            2.,
+            Material::Diffuse(Texture::noise(4.)),
+        )),
+    ]
+}
+
 fn color(r: &Ray, world: &dyn Hittable, depth: i32) -> Vec3 {
     if let Some(rec) = world.hit(r, 0.001, std::f32::MAX) {
         match rec.mat.scatter(&r, &rec) {
@@ -138,7 +154,7 @@ fn main() {
     let ns = 100;
     println!("P3\n{} {}\n255", nx, ny);
 
-    let world = BVH::new(&mut two_spheres(), 0., 1.);
+    let world = BVH::new(&mut two_perlin_spheres(), 0., 1.);
 
     let lookfrom = Vec3::new(13., 2., 3.);
     let lookat = Vec3::new(0., 0., 0.);
