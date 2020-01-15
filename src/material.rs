@@ -9,6 +9,7 @@ use crate::vec3::Vec3;
 pub enum Material {
     Glass(f32),
     Diffuse(Texture),
+    Light(Texture),
     Metal(Vec3, f32),
 }
 
@@ -84,6 +85,7 @@ impl Material {
                     Ray::new(rec.p, target - rec.p, r_in.time()),
                 ))
             }
+            Material::Light(emit) => None,
             Material::Metal(albedo, fuzz) => {
                 let fuzz = fuzz.min(1.);
                 let reflected = reflect(r_in.direction().unit_vector(), rec.normal);
@@ -98,6 +100,13 @@ impl Material {
                     None
                 }
             }
+        }
+    }
+
+    pub fn emitted(&self, u: f32, v: f32, p: Vec3) -> Vec3 {
+        match self {
+            Material::Light(emit) => emit.value(u, v, p),
+            _ => Vec3::new(0., 0., 0.),
         }
     }
 }

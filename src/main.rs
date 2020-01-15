@@ -6,6 +6,7 @@ mod material;
 mod moving_sphere;
 mod perlin;
 mod ray;
+mod rectangle;
 mod sphere;
 mod texture;
 mod vec3;
@@ -15,10 +16,11 @@ use rand::Rng;
 
 use bvh::BVH;
 use camera::Camera;
-use hittable::Hittable;
+use hittable::{Hittable, flip_normals};
 use material::Material;
 use moving_sphere::MovingSphere;
 use ray::Ray;
+use rectangle::{XYRect, XZRect, YZRect};
 use sphere::Sphere;
 use texture::Texture;
 use vec3::Vec3;
@@ -94,8 +96,8 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
     world.push(Box::new(Sphere::new(
         Vec3::new(4., 1., 0.),
         1.,
-        Material::Diffuse(Texture::Image { data, w, h })),
-    ));
+        Material::Diffuse(Texture::Image { data, w, h }),
+    )));
 
     world.push(Box::new(Sphere::new(
         Vec3::new(-4., 1., 0.),
@@ -139,37 +141,64 @@ fn two_perlin_spheres() -> Vec<Box<dyn Hittable>> {
     ]
 }
 
+fn simple_light() -> Vec<Box<dyn Hittable>> {
+    let pertext = Texture::noise(4.);
+    let solidtext = Texture::solid((4., 4., 4.));
+    vec![
+        Box::new(Sphere::new(Vec3::new(0., -1000., 0.), 1000., Material::Diffuse(pertext.clone()))),
+        Box::new(Sphere::new(Vec3::new(0., 2., 0.), 2., Material::Diffuse(pertext.clone()))),
+        Box::new(Sphere::new(Vec3::new(0., 7., 0.), 2., Material::Light(solidtext.clone()))),
+        Box::new(XYRect::new(3., 5., 1., 3., -2., Material::Light(solidtext.clone()))),
+    ]
+}
+
+fn cornell_box() -> Vec<Box<dyn Hittable>> {
+    let red = Material::Diffuse(Texture::solid((0.65, 0.05, 0.05)));
+    let white = Material::Diffuse(Texture::solid((0.73, 0.73, 0.73)));
+    let green = Material::Diffuse(Texture::solid((0.12, 0.45, 0.15)));
+    let light = Material::Light(Texture::solid((15., 15., 15.)));
+
+    vec![
+        flip_normals(YZRect::new(0., 555., 0., 555., 555., green.clone())),
+        Box::new(YZRect::new(0., 555., 0., 555., 0., red.clone())),
+        Box::new(XZRect::new(213., 343., 227., 332., 554., light.clone())),
+        flip_normals(XZRect::new(0., 555., 0., 555., 555., white.clone())),
+        Box::new(XZRect::new(0., 555., 0., 555., 0., white.clone())),
+        flip_normals(XYRect::new(0., 555., 0., 555., 555., white.clone())),
+    ]
+}
+
 fn color(r: &Ray, world: &dyn Hittable, depth: i32) -> Vec3 {
     if let Some(rec) = world.hit(r, 0.001, std::f32::MAX) {
+        let emitted = rec.mat.emitted(rec.u, rec.v, rec.p);
         match rec.mat.scatter(&r, &rec) {
             Some((attenuation, scattered)) if depth < 50 => {
-                attenuation * color(&scattered, world, depth + 1)
+                emitted + attenuation * color(&scattered, world, depth + 1)
             }
-            _ => Vec3::new(0., 0., 0.),
+            _ => emitted,
         }
     } else {
-        let unit_direction = r.direction().unit_vector();
-        let t = 0.5 * (unit_direction.y() + 1.);
-        (1. - t) * Vec3::new(1., 1., 1.) + t * Vec3::new(0.5, 0.7, 1.)
+        Vec3::new(0., 0., 0.)
     }
 }
 
 fn main() {
     let nx = 600;
     let ny = 400;
-    let ns = 20;
+    let ns = 100;
 
-    let world = BVH::new(&mut random_scene(), 0., 1.);
+    let world = BVH::new(&mut cornell_box(), 0., 1.);
 
-    let lookfrom = Vec3::new(13., 2., 3.);
-    let lookat = Vec3::new(0., 0., 0.);
+    let lookfrom = Vec3::new(278., 278., -800.);
+    let lookat = Vec3::new(278., 278., 0.);
     let dist_to_focus = 10.;
     let aperture = 0.;
+    let vfov = 40.;
     let cam = Camera::new(
         lookfrom,
         lookat,
         Vec3::new(0., 1., 0.),
-        20.,
+        vfov,
         (nx as f32) / (ny as f32),
         aperture,
         dist_to_focus,

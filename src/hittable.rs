@@ -35,3 +35,23 @@ impl Hittable for Vec<Box<dyn Hittable>> {
         }
     }
 }
+
+pub struct FlipNormals(Box<dyn Hittable>);
+
+impl Hittable for FlipNormals {
+    fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
+        if let Some(rec) = self.0.hit(r, t_min, t_max) {
+            Some(HitRecord { normal: -rec.normal, ..rec })
+        } else {
+            None
+        }
+    }
+
+    fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB> {
+        self.0.bounding_box(t0, t1)
+    }
+}
+
+pub fn flip_normals<T: 'static + Hittable>(hittable: T) -> Box<FlipNormals> {
+    Box::new(FlipNormals(Box::new(hittable)))
+}
