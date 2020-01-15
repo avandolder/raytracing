@@ -10,7 +10,7 @@ mod sphere;
 mod texture;
 mod vec3;
 
-use rand::prelude::*;
+use rand::Rng;
 
 use bvh::BVH;
 use camera::Camera;
@@ -24,7 +24,7 @@ use vec3::Vec3;
 
 fn random_scene() -> Vec<Box<dyn Hittable>> {
     let n = 500;
-    let mut rng = thread_rng();
+    let mut rng = rand::thread_rng();
     let mut world: Vec<Box<dyn Hittable>> = Vec::with_capacity(n + 1);
 
     let checker = Texture::checker(
@@ -151,8 +151,9 @@ fn color(r: &Ray, world: &dyn Hittable, depth: i32) -> Vec3 {
 fn main() {
     let nx = 600;
     let ny = 400;
-    let ns = 100;
-    println!("P3\n{} {}\n255", nx, ny);
+    let ns = 50;
+    
+    let mut imgbuf = image::ImageBuffer::new(nx, ny);
 
     let world = BVH::new(&mut two_perlin_spheres(), 0., 1.);
 
@@ -172,7 +173,7 @@ fn main() {
         1.,
     );
 
-    let mut rng = thread_rng();
+    let mut rng = rand::thread_rng();
 
     for j in (0..ny).rev() {
         for i in 0..nx {
@@ -184,10 +185,10 @@ fn main() {
             let color = Vec3::new(color[0].sqrt(), color[1].sqrt(), color[2].sqrt());
             let color = Vec3::new(255.99, 255.99, 255.99) * color;
 
-            println!(
-                "{} {} {}",
-                color[0] as i32, color[1] as i32, color[2] as i32
-            );
+            let pixel = image::Rgb([color[0] as u8, color[1] as u8, color[2] as u8]);
+            imgbuf.put_pixel(i, ny - j - 1, pixel);
         }
     }
+
+    imgbuf.save("out.ppm").unwrap();
 }
