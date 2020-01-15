@@ -29,8 +29,8 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
         Material::Diffuse(Vec3::new(0.5, 0.5, 0.5)),
     )));
 
-    for a in -5..5 {
-        for b in -5..5 {
+    for a in -11..11 {
+        for b in -11..11 {
             let center = Vec3::new(
                 a as f32 + 0.9 * rng.gen::<f32>(),
                 0.2,
@@ -42,8 +42,11 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
 
             let choose_mat = rng.gen::<f32>();
             if choose_mat < 0.8 {
-                world.push(Box::new(Sphere::new(
+                world.push(Box::new(MovingSphere::new(
                     center,
+                    center + Vec3::new(0., 0.5 * rng.gen::<f32>(), 0.),
+                    0.,
+                    1.,
                     0.2,
                     Material::Diffuse(Vec3::new(
                         rng.gen::<f32>() * rng.gen::<f32>(),
@@ -106,11 +109,10 @@ fn color(r: &Ray, world: &dyn Hittable, depth: i32) -> Vec3 {
 fn main() {
     let nx = 600;
     let ny = 400;
-    let ns = 50;
+    let ns = 10;
     println!("P3\n{} {}\n255", nx, ny);
 
-    let mut world = random_scene();
-    let bvh = BVH::new(&mut world, 0., 0.);
+    let world = BVH::new(&mut random_scene(), 0., 1.);
 
     let lookfrom = Vec3::new(13., 2., 3.);
     let lookat = Vec3::new(0., 0., 0.);
@@ -132,23 +134,18 @@ fn main() {
 
     for j in (0..ny).rev() {
         for i in 0..nx {
-            let mut col = Vec3::default();
-            for _ in 0..ns {
+            let color = (0..ns).fold(Vec3::default(), |col, _| {
                 let u = (i as f32 + rng.gen::<f32>()) / nx as f32;
                 let v = (j as f32 + rng.gen::<f32>()) / ny as f32;
-                let r = cam.get_ray(u, v);
-                col += color(&r, &bvh, 0);
-            }
-            col /= ns as f32;
-            col = Vec3::new(col[0].sqrt(), col[1].sqrt(), col[2].sqrt());
+                col + color(&cam.get_ray(u, v), &world, 0)
+            }) / ns as f32;
+            let color = Vec3::new(color[0].sqrt(), color[1].sqrt(), color[2].sqrt());
+            let color = Vec3::new(255.99, 255.99, 255.99) * color;
 
-            let (ir, ig, ib) = (
-                (255.99 * col[0]) as i32,
-                (255.99 * col[1]) as i32,
-                (255.99 * col[2]) as i32,
+            println!(
+                "{} {} {}",
+                color[0] as i32, color[1] as i32, color[2] as i32
             );
-
-            println!("{} {} {}", ir, ig, ib);
         }
     }
 }
