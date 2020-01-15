@@ -22,7 +22,7 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+    fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
         let oc = r.origin() - self.center;
         let a = r.direction().squared_length();
         let b = oc.dot(r.direction());
@@ -33,22 +33,28 @@ impl Hittable for Sphere {
             let t = (-b - discriminant.sqrt()) / a;
             if t < t_max && t > t_min {
                 let p = r.point_at_parameter(t);
+                let (u, v) = get_sphere_uv((p - self.center) / self.radius);
                 return Some(HitRecord {
                     t,
                     p,
                     normal: (p - self.center) / self.radius,
-                    mat: self.mat.clone(),
+                    mat: &self.mat,
+                    u,
+                    v,
                 });
             }
 
             let t = (-b + discriminant.sqrt()) / a;
             if t < t_max && t > t_min {
                 let p = r.point_at_parameter(t);
+                let (u, v) = get_sphere_uv((p - self.center) / self.radius);
                 return Some(HitRecord {
                     t,
                     p,
                     normal: (p - self.center) / self.radius,
-                    mat: self.mat.clone(),
+                    mat: &self.mat,
+                    u,
+                    v,
                 });
             }
         }
@@ -62,4 +68,13 @@ impl Hittable for Sphere {
             self.center + Vec3::new(self.radius, self.radius, self.radius),
         ))
     }
+}
+
+pub fn get_sphere_uv(p: Vec3) -> (f32, f32) {
+    use std::f32::consts::PI;
+    let phi = p.z().atan2(p.x());
+    let theta = p.y().asin();
+    let u = 1. - (phi + PI) / (2. * PI);
+    let v = (theta + PI / 2.) / PI;
+    (u, v)
 }

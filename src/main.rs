@@ -10,6 +10,7 @@ mod sphere;
 mod texture;
 mod vec3;
 
+use image::GenericImageView;
 use rand::Rng;
 
 use bvh::BVH;
@@ -86,13 +87,18 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
         1.,
         Material::Glass(1.5),
     )));
-    world.push(Box::new(Sphere::new(
-        Vec3::new(-4., 1., 0.),
-        1.,
-        Material::Diffuse(Texture::solid(Vec3::new(0.4, 0.2, 0.1))),
-    )));
+
+    let img = image::open("earthmap.jpg").unwrap();
+    let data = img.raw_pixels();
+    let (w, h) = img.dimensions();
     world.push(Box::new(Sphere::new(
         Vec3::new(4., 1., 0.),
+        1.,
+        Material::Diffuse(Texture::Image { data, w, h })),
+    ));
+
+    world.push(Box::new(Sphere::new(
+        Vec3::new(-4., 1., 0.),
         1.,
         Material::Metal(Vec3::new(0.7, 0.6, 0.5), 0.),
     )));
@@ -149,13 +155,11 @@ fn color(r: &Ray, world: &dyn Hittable, depth: i32) -> Vec3 {
 }
 
 fn main() {
-    let nx = 600;
-    let ny = 400;
-    let ns = 50;
-    
-    let mut imgbuf = image::ImageBuffer::new(nx, ny);
+    let nx = 300;
+    let ny = 200;
+    let ns = 10;
 
-    let world = BVH::new(&mut two_perlin_spheres(), 0., 1.);
+    let world = BVH::new(&mut random_scene(), 0., 1.);
 
     let lookfrom = Vec3::new(13., 2., 3.);
     let lookat = Vec3::new(0., 0., 0.);
@@ -174,6 +178,7 @@ fn main() {
     );
 
     let mut rng = rand::thread_rng();
+    let mut imgbuf = image::ImageBuffer::new(nx, ny);
 
     for j in (0..ny).rev() {
         for i in 0..nx {
@@ -190,5 +195,5 @@ fn main() {
         }
     }
 
-    imgbuf.save("out.ppm").unwrap();
+    imgbuf.save("out.png").unwrap();
 }

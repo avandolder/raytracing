@@ -2,6 +2,7 @@ use crate::aabb::{surrounding_box, AABB};
 use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
 use crate::ray::Ray;
+use crate::sphere::get_sphere_uv;
 use crate::vec3::Vec3;
 
 #[derive(Clone)]
@@ -22,7 +23,7 @@ impl MovingSphere {
         time1: f32,
         radius: f32,
         mat: Material,
-    ) -> Self {
+    ) -> MovingSphere {
         MovingSphere {
             center0,
             center1,
@@ -40,7 +41,7 @@ impl MovingSphere {
 }
 
 impl Hittable for MovingSphere {
-    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+    fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
         let oc = r.origin() - self.center(r.time());
         let a = r.direction().squared_length();
         let b = oc.dot(r.direction());
@@ -51,22 +52,28 @@ impl Hittable for MovingSphere {
             let t = (-b - discriminant.sqrt()) / a;
             if t < t_max && t > t_min {
                 let p = r.point_at_parameter(t);
+                let (u, v) = get_sphere_uv((p - self.center(r.time())) / self.radius);
                 return Some(HitRecord {
                     t,
                     p,
                     normal: (p - self.center(r.time())) / self.radius,
-                    mat: self.mat.clone(),
+                    mat: &self.mat,
+                    u,
+                    v,
                 });
             }
 
             let t = (-b + discriminant.sqrt()) / a;
             if t < t_max && t > t_min {
                 let p = r.point_at_parameter(t);
+                let (u, v) = get_sphere_uv((p - self.center(r.time())) / self.radius);
                 return Some(HitRecord {
                     t,
                     p,
                     normal: (p - self.center(r.time())) / self.radius,
-                    mat: self.mat.clone(),
+                    mat: &self.mat,
+                    u,
+                    v,
                 });
             }
         }
