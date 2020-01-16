@@ -1,4 +1,6 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign};
+use std::ops::{
+    Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign,
+};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Vec3(pub [f32; 3]);
@@ -182,6 +184,12 @@ impl Index<usize> for Vec3 {
     #[inline(always)]
     fn index(&self, idx: usize) -> &f32 {
         &self.0[idx]
+    }
+}
+
+impl IndexMut<usize> for Vec3 {
+    fn index_mut(&mut self, idx: usize) -> &mut f32 {
+        &mut self.0[idx]
     }
 }
 

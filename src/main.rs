@@ -8,8 +8,10 @@ mod moving_sphere;
 mod perlin;
 mod ray;
 mod rectangle;
+mod rotate;
 mod sphere;
 mod texture;
+mod translate;
 mod vec3;
 
 use image::GenericImageView;
@@ -18,13 +20,15 @@ use rand::Rng;
 use bvh::BVH;
 use camera::Camera;
 use cornellbox::CornellBox;
-use hittable::{Hittable, flip_normals};
+use hittable::{flip_normals, Hittable};
 use material::Material;
 use moving_sphere::MovingSphere;
 use ray::Ray;
 use rectangle::{XYRect, XZRect, YZRect};
+use rotate::RotateY;
 use sphere::Sphere;
 use texture::Texture;
+use translate::Translate;
 use vec3::Vec3;
 
 fn random_scene() -> Vec<Box<dyn Hittable>> {
@@ -147,10 +151,29 @@ fn simple_light() -> Vec<Box<dyn Hittable>> {
     let pertext = Texture::noise(4.);
     let solidtext = Texture::solid((4., 4., 4.));
     vec![
-        Box::new(Sphere::new(Vec3::new(0., -1000., 0.), 1000., Material::Diffuse(pertext.clone()))),
-        Box::new(Sphere::new(Vec3::new(0., 2., 0.), 2., Material::Diffuse(pertext.clone()))),
-        Box::new(Sphere::new(Vec3::new(0., 7., 0.), 2., Material::Light(solidtext.clone()))),
-        Box::new(XYRect::new(3., 5., 1., 3., -2., Material::Light(solidtext.clone()))),
+        Box::new(Sphere::new(
+            Vec3::new(0., -1000., 0.),
+            1000.,
+            Material::Diffuse(pertext.clone()),
+        )),
+        Box::new(Sphere::new(
+            Vec3::new(0., 2., 0.),
+            2.,
+            Material::Diffuse(pertext.clone()),
+        )),
+        Box::new(Sphere::new(
+            Vec3::new(0., 7., 0.),
+            2.,
+            Material::Light(solidtext.clone()),
+        )),
+        Box::new(XYRect::new(
+            3.,
+            5.,
+            1.,
+            3.,
+            -2.,
+            Material::Light(solidtext.clone()),
+        )),
     ]
 }
 
@@ -167,8 +190,20 @@ fn cornell_box() -> Vec<Box<dyn Hittable>> {
         flip_normals(XZRect::new(0., 555., 0., 555., 555., white.clone())),
         Box::new(XZRect::new(0., 555., 0., 555., 0., white.clone())),
         flip_normals(XYRect::new(0., 555., 0., 555., 555., white.clone())),
-        Box::new(CornellBox::new((130, 0, 65), (295, 165, 230), white.clone())),
-        Box::new(CornellBox::new((265, 0, 295), (430, 330, 460), white.clone())),
+        Box::new(Translate::new(
+            RotateY::new(
+                CornellBox::new((0, 0, 0), (165, 165, 165), white.clone()),
+                -18.,
+            ),
+            (130, 0, 65),
+        )),
+        Box::new(Translate::new(
+            RotateY::new(
+                CornellBox::new((0, 0, 0), (165, 330, 165), white.clone()),
+                15.,
+            ),
+            (265, 0, 295),
+        )),
     ]
 }
 
@@ -187,8 +222,8 @@ fn color(r: &Ray, world: &dyn Hittable, depth: i32) -> Vec3 {
 }
 
 fn main() {
-    let nx = 600;
-    let ny = 400;
+    let nx = 800;
+    let ny = 800;
     let ns = 100;
 
     let world = BVH::new(&mut cornell_box(), 0., 1.);

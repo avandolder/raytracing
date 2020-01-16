@@ -1,5 +1,5 @@
 use crate::aabb::AABB;
-use crate::hittable::{HitRecord, Hittable, flip_normals};
+use crate::hittable::{flip_normals, HitRecord, Hittable};
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::rectangle::{XYRect, XZRect, YZRect};
@@ -18,12 +18,54 @@ impl CornellBox {
             pmin: p0,
             pmax: p1,
             sides: vec![
-                Box::new(XYRect::new(p0.x(), p1.x(), p0.y(), p1.y(), p1.z(), mat.clone())),
-                flip_normals(XYRect::new(p0.x(), p1.x(), p0.y(), p1.y(), p0.z(), mat.clone())),
-                Box::new(XZRect::new(p0.x(), p1.x(), p0.z(), p1.z(), p1.y(), mat.clone())),
-                flip_normals(XZRect::new(p0.x(), p1.x(), p0.z(), p1.z(), p0.y(), mat.clone())),
-                Box::new(YZRect::new(p0.y(), p1.y(), p0.z(), p1.z(), p1.x(), mat.clone())),
-                flip_normals(YZRect::new(p0.y(), p1.y(), p0.z(), p1.z(), p0.x(), mat.clone())),
+                Box::new(XYRect::new(
+                    p0.x(),
+                    p1.x(),
+                    p0.y(),
+                    p1.y(),
+                    p1.z(),
+                    mat.clone(),
+                )),
+                flip_normals(XYRect::new(
+                    p0.x(),
+                    p1.x(),
+                    p0.y(),
+                    p1.y(),
+                    p0.z(),
+                    mat.clone(),
+                )),
+                Box::new(XZRect::new(
+                    p0.x(),
+                    p1.x(),
+                    p0.z(),
+                    p1.z(),
+                    p1.y(),
+                    mat.clone(),
+                )),
+                flip_normals(XZRect::new(
+                    p0.x(),
+                    p1.x(),
+                    p0.z(),
+                    p1.z(),
+                    p0.y(),
+                    mat.clone(),
+                )),
+                Box::new(YZRect::new(
+                    p0.y(),
+                    p1.y(),
+                    p0.z(),
+                    p1.z(),
+                    p1.x(),
+                    mat.clone(),
+                )),
+                flip_normals(YZRect::new(
+                    p0.y(),
+                    p1.y(),
+                    p0.z(),
+                    p1.z(),
+                    p0.x(),
+                    mat.clone(),
+                )),
             ],
         }
     }
@@ -34,7 +76,7 @@ impl Hittable for CornellBox {
         self.sides.hit(r, t0, t1)
     }
 
-    fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB> {
+    fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<AABB> {
         Some(AABB::new(self.pmin, self.pmax))
     }
 }

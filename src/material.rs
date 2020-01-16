@@ -85,7 +85,7 @@ impl Material {
                     Ray::new(rec.p, target - rec.p, r_in.time()),
                 ))
             }
-            Material::Light(emit) => None,
+            Material::Light(_) => None,
             Material::Metal(albedo, fuzz) => {
                 let fuzz = fuzz.min(1.);
                 let reflected = reflect(r_in.direction().unit_vector(), rec.normal);

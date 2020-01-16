@@ -41,7 +41,10 @@ pub struct FlipNormals(Box<dyn Hittable>);
 impl Hittable for FlipNormals {
     fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
         if let Some(rec) = self.0.hit(r, t_min, t_max) {
-            Some(HitRecord { normal: -rec.normal, ..rec })
+            Some(HitRecord {
+                normal: -rec.normal,
+                ..rec
+            })
         } else {
             None
         }
