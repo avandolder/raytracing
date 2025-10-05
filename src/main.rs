@@ -20,7 +20,7 @@ use rand::Rng;
 use bvh::BVH;
 use camera::Camera;
 use cornellbox::CornellBox;
-use hittable::{flip_normals, Hittable};
+use hittable::{Hittable, flip_normals};
 use material::Material;
 use moving_sphere::MovingSphere;
 use ray::Ray;
@@ -33,7 +33,7 @@ use vec3::Vec3;
 
 fn random_scene() -> Vec<Box<dyn Hittable>> {
     let n = 500;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut world: Vec<Box<dyn Hittable>> = Vec::with_capacity(n + 1);
 
     let checker = Texture::checker(
@@ -49,26 +49,26 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
     for a in -11..11 {
         for b in -11..11 {
             let center = Vec3::new(
-                a as f32 + 0.9 * rng.gen::<f32>(),
+                a as f32 + 0.9 * rng.random::<f32>(),
                 0.2,
-                b as f32 + 0.9 * rng.gen::<f32>(),
+                b as f32 + 0.9 * rng.random::<f32>(),
             );
             if (center - Vec3::new(4., 0.2, 0.)).length() <= 0.9 {
                 continue;
             }
 
-            let choose_mat = rng.gen::<f32>();
+            let choose_mat = rng.random::<f32>();
             if choose_mat < 0.8 {
                 world.push(Box::new(MovingSphere::new(
                     center,
-                    center + Vec3::new(0., 0.5 * rng.gen::<f32>(), 0.),
+                    center + Vec3::new(0., 0.5 * rng.random::<f32>(), 0.),
                     0.,
                     1.,
                     0.2,
                     Material::Diffuse(Texture::solid(Vec3::new(
-                        rng.gen::<f32>() * rng.gen::<f32>(),
-                        rng.gen::<f32>() * rng.gen::<f32>(),
-                        rng.gen::<f32>() * rng.gen::<f32>(),
+                        rng.random::<f32>() * rng.random::<f32>(),
+                        rng.random::<f32>() * rng.random::<f32>(),
+                        rng.random::<f32>() * rng.random::<f32>(),
                     ))),
                 )));
             } else if choose_mat < 0.95 {
@@ -77,11 +77,11 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
                     0.2,
                     Material::Metal(
                         Vec3::new(
-                            0.5 * (1. + rng.gen::<f32>()),
-                            0.5 * (1. + rng.gen::<f32>()),
-                            0.5 * (1. + rng.gen::<f32>()),
+                            0.5 * (1. + rng.random::<f32>()),
+                            0.5 * (1. + rng.random::<f32>()),
+                            0.5 * (1. + rng.random::<f32>()),
                         ),
-                        0.5 * rng.gen::<f32>(),
+                        0.5 * rng.random::<f32>(),
                     ),
                 )));
             } else {
@@ -97,7 +97,7 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
     )));
 
     let img = image::open("earthmap.jpg").unwrap();
-    let data = img.raw_pixels();
+    let data = img.to_rgb8().into_raw();
     let (w, h) = img.dimensions();
     world.push(Box::new(Sphere::new(
         Vec3::new(4., 1., 0.),
@@ -208,9 +208,9 @@ fn cornell_box() -> Vec<Box<dyn Hittable>> {
 }
 
 fn color(r: &Ray, world: &dyn Hittable, depth: i32) -> Vec3 {
-    if let Some(rec) = world.hit(r, 0.001, std::f32::MAX) {
+    if let Some(rec) = world.hit(r, 0.001, f32::MAX) {
         let emitted = rec.mat.emitted(rec.u, rec.v, rec.p);
-        match rec.mat.scatter(&r, &rec) {
+        match rec.mat.scatter(r, &rec) {
             Some((attenuation, scattered)) if depth < 50 => {
                 emitted + attenuation * color(&scattered, world, depth + 1)
             }
@@ -245,14 +245,14 @@ fn main() {
         1.,
     );
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut imgbuf = image::ImageBuffer::new(nx, ny);
 
     for (i, j, pixel) in imgbuf.enumerate_pixels_mut() {
         let j = ny - j - 1; // Flip points vertically.
         let color = (0..ns).fold(Vec3::default(), |col, _| {
-            let u = (i as f32 + rng.gen::<f32>()) / nx as f32;
-            let v = (j as f32 + rng.gen::<f32>()) / ny as f32;
+            let u = (i as f32 + rng.random::<f32>()) / nx as f32;
+            let v = (j as f32 + rng.random::<f32>()) / ny as f32;
             col + color(&cam.get_ray(u, v), &world, 0)
         }) / ns as f32;
         let color = Vec3::new(color[0].sqrt(), color[1].sqrt(), color[2].sqrt());

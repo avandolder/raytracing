@@ -15,9 +15,13 @@ pub enum Material {
 
 fn random_in_unit_sphere() -> Vec3 {
     let mut p = Vec3::new(1., 1., 1.);
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
     while p.squared_length() >= 1. {
-        let v = Vec3::new(rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>());
+        let v = Vec3::new(
+            rng.random::<f32>(),
+            rng.random::<f32>(),
+            rng.random::<f32>(),
+        );
         p = 2. * v - Vec3::new(1., 1., 1.);
     }
     p
@@ -60,7 +64,7 @@ impl Material {
 
                 if let Some(refracted) = refract(r_in.direction(), outward_normal, ni_over_nt) {
                     let reflect_prob = schlick(cosine, *ref_idx);
-                    if thread_rng().gen::<f32>() < reflect_prob {
+                    if rand::rng().random::<f32>() < reflect_prob {
                         Some((
                             Vec3::new(1., 1., 1.),
                             Ray::new(rec.p, reflected, r_in.time()),

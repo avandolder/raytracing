@@ -1,6 +1,6 @@
 use rand::prelude::*;
 
-use crate::aabb::{surrounding_box, AABB};
+use crate::aabb::{AABB, surrounding_box};
 use crate::hittable::{HitRecord, Hittable};
 use crate::ray::Ray;
 
@@ -22,7 +22,7 @@ impl BVH {
         // l must be non-empty.
 
         // Pick a random axis and split l in half along it.
-        let axis = thread_rng().gen_range(0, 3);
+        let axis = rand::rng().random_range(0..3);
         l.sort_unstable_by(|a, b| {
             let bbox_left = a.bounding_box(0., 0.).expect("No AABB in BVH constructor!");
             let bbox_right = b.bounding_box(0., 0.).expect("No AABB in BVH constructor!");
@@ -74,7 +74,7 @@ impl BVH {
 }
 
 impl Hittable for BVH {
-    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'_>> {
         match self {
             BVH::Single { left, bbox } => {
                 if bbox.hit(r, t_min, t_max) {

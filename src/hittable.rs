@@ -1,4 +1,4 @@
-use crate::aabb::{surrounding_box, AABB};
+use crate::aabb::{AABB, surrounding_box};
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
@@ -25,7 +25,7 @@ impl Hittable for Vec<Box<dyn Hittable>> {
     }
 
     fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB> {
-        if let Some(init) = self.get(0).and_then(|x| x.bounding_box(t0, t1)) {
+        if let Some(init) = self.first().and_then(|x| x.bounding_box(t0, t1)) {
             self.iter().try_fold(init, |box1, item| {
                 item.bounding_box(t0, t1)
                     .map(|box2| surrounding_box(box1, box2))
@@ -40,14 +40,10 @@ pub struct FlipNormals(Box<dyn Hittable>);
 
 impl Hittable for FlipNormals {
     fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
-        if let Some(rec) = self.0.hit(r, t_min, t_max) {
-            Some(HitRecord {
-                normal: -rec.normal,
-                ..rec
-            })
-        } else {
-            None
-        }
+        self.0.hit(r, t_min, t_max).map(|rec| HitRecord {
+            normal: -rec.normal,
+            ..rec
+        })
     }
 
     fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB> {

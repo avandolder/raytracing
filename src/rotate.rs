@@ -16,8 +16,8 @@ impl RotateY {
         let sin_theta = radians.sin();
         let cos_theta = radians.cos();
         let bbox = hittable.bounding_box(0., 1.).map(|bbox| {
-            let mut min = Vec3::new(std::f32::MAX, std::f32::MAX, std::f32::MAX);
-            let mut max = Vec3::new(std::f32::MIN, std::f32::MIN, std::f32::MIN);
+            let mut min = Vec3::new(f32::MAX, f32::MAX, f32::MAX);
+            let mut max = Vec3::new(f32::MIN, f32::MIN, f32::MIN);
             for i in 0..2 {
                 for j in 0..2 {
                     for k in 0..2 {

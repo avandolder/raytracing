@@ -18,9 +18,9 @@ pub struct Camera {
 
 fn random_in_unit_disk() -> Vec3 {
     let mut p = Vec3::new(1., 1., 1.);
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
     while p.squared_length() >= 1. {
-        let v = Vec3::new(rng.gen::<f32>(), rng.gen::<f32>(), 0.);
+        let v = Vec3::new(rng.random::<f32>(), rng.random::<f32>(), 0.);
         p = 2. * v - Vec3::new(1., 1., 0.);
     }
     p
@@ -66,7 +66,7 @@ impl Camera {
     pub fn get_ray(&self, s: f32, t: f32) -> Ray {
         let rd = self.lens_radius * random_in_unit_disk();
         let offset = self.u * rd.x() + self.v * rd.y();
-        let time = self.time0 + thread_rng().gen::<f32>() * (self.time1 - self.time0);
+        let time = self.time0 + rand::rng().random::<f32>() * (self.time1 - self.time0);
         Ray::new(
             self.origin + offset,
             self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin - offset,

@@ -34,7 +34,7 @@ impl Hittable for XYRect {
         ))
     }
 
-    fn hit<'a>(&'a self, r: &Ray, t0: f32, t1: f32) -> Option<HitRecord> {
+    fn hit<'a>(&'a self, r: &Ray, t0: f32, t1: f32) -> Option<HitRecord<'a>> {
         let t = (self.k - r.origin().z()) / r.direction().z();
         if t < t0 || t > t1 {
             return None;
@@ -87,7 +87,7 @@ impl Hittable for XZRect {
         ))
     }
 
-    fn hit<'a>(&'a self, r: &Ray, t0: f32, t1: f32) -> Option<HitRecord> {
+    fn hit<'a>(&'a self, r: &Ray, t0: f32, t1: f32) -> Option<HitRecord<'a>> {
         let t = (self.k - r.origin().y()) / r.direction().y();
         if t < t0 || t > t1 {
             return None;
@@ -140,7 +140,7 @@ impl Hittable for YZRect {
         ))
     }
 
-    fn hit<'a>(&'a self, r: &Ray, t0: f32, t1: f32) -> Option<HitRecord> {
+    fn hit<'a>(&'a self, r: &Ray, t0: f32, t1: f32) -> Option<HitRecord<'a>> {
         let t = (self.k - r.origin().x()) / r.direction().x();
         if t < t0 || t > t1 {
             return None;

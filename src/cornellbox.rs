@@ -1,5 +1,5 @@
 use crate::aabb::AABB;
-use crate::hittable::{flip_normals, HitRecord, Hittable};
+use crate::hittable::{HitRecord, Hittable, flip_normals};
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::rectangle::{XYRect, XZRect, YZRect};
@@ -72,7 +72,7 @@ impl CornellBox {
 }
 
 impl Hittable for CornellBox {
-    fn hit<'a>(&self, r: &Ray, t0: f32, t1: f32) -> Option<HitRecord> {
+    fn hit<'a>(&self, r: &Ray, t0: f32, t1: f32) -> Option<HitRecord<'_>> {
         self.sides.hit(r, t0, t1)
     }
 

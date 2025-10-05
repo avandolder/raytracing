@@ -1,29 +1,28 @@
-use lazy_static::lazy_static;
-use rand::{seq::SliceRandom, Rng};
+use std::sync::LazyLock;
+
+use rand::{Rng, seq::SliceRandom};
 
 use crate::vec3::Vec3;
 
-lazy_static! {
-    static ref RANVEC: Vec<Vec3> = perlin_generate(256);
-    static ref PERM_X: Vec<i32> = perlin_permutation(256);
-    static ref PERM_Y: Vec<i32> = perlin_permutation(256);
-    static ref PERM_Z: Vec<i32> = perlin_permutation(256);
-}
+static RANVEC: LazyLock<Vec<Vec3>> = LazyLock::new(|| perlin_generate(256));
+static PERM_X: LazyLock<Vec<i32>> = LazyLock::new(|| perlin_permutation(256));
+static PERM_Y: LazyLock<Vec<i32>> = LazyLock::new(|| perlin_permutation(256));
+static PERM_Z: LazyLock<Vec<i32>> = LazyLock::new(|| perlin_permutation(256));
 
 fn perlin_permutation(n: usize) -> Vec<i32> {
     let mut p = (0..n as i32).collect::<Vec<i32>>();
-    p.shuffle(&mut rand::thread_rng());
+    p.shuffle(&mut rand::rng());
     p
 }
 
 fn perlin_generate(n: usize) -> Vec<Vec3> {
     let mut p = Vec::with_capacity(n);
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     for _ in 0..n {
-        let x = 2. * rng.gen::<f32>() - 1.;
-        let y = 2. * rng.gen::<f32>() - 1.;
-        let z = 2. * rng.gen::<f32>() - 1.;
+        let x = 2. * rng.random::<f32>() - 1.;
+        let y = 2. * rng.random::<f32>() - 1.;
+        let z = 2. * rng.random::<f32>() - 1.;
         p.push(Vec3::new(x, y, z).unit_vector())
     }
 

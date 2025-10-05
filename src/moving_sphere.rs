@@ -1,4 +1,4 @@
-use crate::aabb::{surrounding_box, AABB};
+use crate::aabb::{AABB, surrounding_box};
 use crate::hittable::{HitRecord, Hittable};
 use crate::material::Material;
 use crate::ray::Ray;
