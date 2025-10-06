@@ -261,5 +261,20 @@ fn main() {
         *pixel = image::Rgb([color[0] as u8, color[1] as u8, color[2] as u8]);
     }
 
-    imgbuf.save("out.png").unwrap();
+    let mut fimg = image::DynamicImage::ImageRgb8(imgbuf).to_rgb32f();
+    let (width, height) = fimg.dimensions();
+
+    {
+        let fpxs = fimg.as_flat_samples_mut();
+        let device = oidn::Device::cpu();
+        oidn::RayTracing::new(&device)
+            .image_dimensions(width as usize, height as usize)
+            .filter_in_place(fpxs.samples)
+            .expect("failed to denoise");
+    }
+
+    image::DynamicImage::ImageRgb32F(fimg)
+        .to_rgb8()
+        .save("out.png")
+        .unwrap();
 }
