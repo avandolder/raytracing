@@ -185,8 +185,8 @@ fn cornell_box() -> Vec<Box<dyn Hittable + Sync>> {
     let light = Material::Light(Texture::solid((15., 15., 15.)));
 
     vec![
-        flip_normals(YZRect::new(0., 555., 0., 555., 555., green.clone())),
-        Box::new(YZRect::new(0., 555., 0., 555., 0., red.clone())),
+        flip_normals(YZRect::new(0., 555., 0., 555., 555., red.clone())),
+        Box::new(YZRect::new(0., 555., 0., 555., 0., green.clone())),
         Box::new(XZRect::new(213., 343., 227., 332., 554., light.clone())),
         flip_normals(XZRect::new(0., 555., 0., 555., 555., white.clone())),
         Box::new(XZRect::new(0., 555., 0., 555., 0., white.clone())),
