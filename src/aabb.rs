@@ -13,23 +13,19 @@ impl AABB {
     }
 
     pub fn hit(&self, r: &Ray, mut tmin: f32, mut tmax: f32) -> bool {
-        for i in 0..3 {
-            let invd = 1. / r.direction()[i];
-            let (m0, m1) = if invd >= 0. {
-                (self.min[i], self.max[i])
-            } else {
-                (self.max[i], self.min[i])
-            };
-            let t0 = (m0 - r.origin()[i]) * invd;
-            let t1 = (m1 - r.origin()[i]) * invd;
+        std::iter::zip(r.direction().0, r.origin().0)
+            .zip(self.min.0)
+            .zip(self.max.0)
+            .all(|(((d, o), min), max)| {
+                let invd = 1. / d;
+                let (m0, m1) = if invd >= 0. { (min, max) } else { (max, min) };
+                let t0 = (m0 - o) * invd;
+                let t1 = (m1 - o) * invd;
 
-            tmin = t0.max(tmin);
-            tmax = t1.min(tmax);
-            if tmax <= tmin {
-                return false;
-            }
-        }
-        true
+                tmin = t0.max(tmin);
+                tmax = t1.min(tmax);
+                tmax > tmin
+            })
     }
 }
 

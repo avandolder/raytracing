@@ -35,11 +35,7 @@ fn refract(v: Vec3, n: Vec3, ni_over_nt: f32) -> Option<Vec3> {
     let uv = v.unit_vector();
     let dt = uv.dot(n);
     let discriminant = 1. - ni_over_nt * ni_over_nt * (1. - dt * dt);
-    if discriminant > 0. {
-        Some(ni_over_nt * (uv - n * dt) - n * discriminant.sqrt())
-    } else {
-        None
-    }
+    (discriminant > 0.).then(|| ni_over_nt * (uv - n * dt) - n * discriminant.sqrt())
 }
 
 fn schlick(cosine: f32, ref_idx: f32) -> f32 {

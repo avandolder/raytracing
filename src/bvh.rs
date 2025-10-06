@@ -109,8 +109,7 @@ impl Hittable for BVH {
 
     fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<AABB> {
         match self {
-            BVH::Single { bbox, .. } => Some(bbox.clone()),
-            BVH::Double { bbox, .. } => Some(bbox.clone()),
+            BVH::Single { bbox, .. } | BVH::Double { bbox, .. } => Some(bbox.clone()),
         }
     }
 }

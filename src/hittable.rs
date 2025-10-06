@@ -25,14 +25,11 @@ impl Hittable for Vec<Box<dyn Hittable>> {
     }
 
     fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB> {
-        if let Some(init) = self.first().and_then(|x| x.bounding_box(t0, t1)) {
-            self.iter().try_fold(init, |box1, item| {
-                item.bounding_box(t0, t1)
-                    .map(|box2| surrounding_box(box1, box2))
-            })
-        } else {
-            None
-        }
+        let init = self.first()?.bounding_box(t0, t1)?;
+        self.iter().try_fold(init, |box1, item| {
+            item.bounding_box(t0, t1)
+                .map(|box2| surrounding_box(box1, box2))
+        })
     }
 }
 
