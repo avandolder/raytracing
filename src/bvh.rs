@@ -6,18 +6,18 @@ use crate::ray::Ray;
 
 pub enum BVH {
     Single {
-        left: Box<dyn Hittable>,
+        left: Box<dyn Hittable + Sync>,
         bbox: AABB,
     },
     Double {
-        left: Box<dyn Hittable>,
-        right: Box<dyn Hittable>,
+        left: Box<dyn Hittable + Sync>,
+        right: Box<dyn Hittable + Sync>,
         bbox: AABB,
     },
 }
 
 impl BVH {
-    pub fn new(l: &mut Vec<Box<dyn Hittable>>, time0: f32, time1: f32) -> BVH {
+    pub fn new(l: &mut Vec<Box<dyn Hittable + Sync>>, time0: f32, time1: f32) -> BVH {
         // Note: l is emptied by the this function!
         // l must be non-empty.
 

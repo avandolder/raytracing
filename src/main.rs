@@ -16,6 +16,7 @@ mod vec3;
 
 use image::GenericImageView;
 use rand::Rng;
+use rayon::iter::ParallelIterator;
 
 use bvh::BVH;
 use camera::Camera;
@@ -31,10 +32,10 @@ use texture::Texture;
 use translate::Translate;
 use vec3::Vec3;
 
-fn random_scene() -> Vec<Box<dyn Hittable>> {
+fn random_scene() -> Vec<Box<dyn Hittable + Sync>> {
     let n = 500;
     let mut rng = rand::rng();
-    let mut world: Vec<Box<dyn Hittable>> = Vec::with_capacity(n + 1);
+    let mut world: Vec<Box<dyn Hittable + Sync>> = Vec::with_capacity(n + 1);
 
     let checker = Texture::checker(
         Texture::solid((0.2, 0.3, 0.1)),
@@ -113,7 +114,7 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
     world
 }
 
-fn two_spheres() -> Vec<Box<dyn Hittable>> {
+fn two_spheres() -> Vec<Box<dyn Hittable + Sync>> {
     let checker = Texture::checker(
         Texture::solid((0.2, 0.3, 0.1)),
         Texture::solid((0.9, 0.9, 0.9)),
@@ -132,7 +133,7 @@ fn two_spheres() -> Vec<Box<dyn Hittable>> {
     ]
 }
 
-fn two_perlin_spheres() -> Vec<Box<dyn Hittable>> {
+fn two_perlin_spheres() -> Vec<Box<dyn Hittable + Sync>> {
     vec![
         Box::new(Sphere::new(
             Vec3::new(0., -1000., 0.),
@@ -147,7 +148,7 @@ fn two_perlin_spheres() -> Vec<Box<dyn Hittable>> {
     ]
 }
 
-fn simple_light() -> Vec<Box<dyn Hittable>> {
+fn simple_light() -> Vec<Box<dyn Hittable + Sync>> {
     let pertext = Texture::noise(4.);
     let solidtext = Texture::solid((4., 4., 4.));
     vec![
@@ -177,7 +178,7 @@ fn simple_light() -> Vec<Box<dyn Hittable>> {
     ]
 }
 
-fn cornell_box() -> Vec<Box<dyn Hittable>> {
+fn cornell_box() -> Vec<Box<dyn Hittable + Sync>> {
     let red = Material::Diffuse(Texture::solid((0.65, 0.05, 0.05)));
     let white = Material::Diffuse(Texture::solid((0.73, 0.73, 0.73)));
     let green = Material::Diffuse(Texture::solid((0.12, 0.45, 0.15)));
@@ -245,11 +246,11 @@ fn main() {
         1.,
     );
 
-    let mut rng = rand::rng();
     let mut imgbuf = image::ImageBuffer::new(nx, ny);
 
-    for (i, j, pixel) in imgbuf.enumerate_pixels_mut() {
+    imgbuf.par_enumerate_pixels_mut().for_each(|(i, j, pixel)| {
         let j = ny - j - 1; // Flip points vertically.
+        let mut rng = rand::rng();
         let color = (0..ns).fold(Vec3::default(), |col, _| {
             let u = (i as f32 + rng.random::<f32>()) / nx as f32;
             let v = (j as f32 + rng.random::<f32>()) / ny as f32;
@@ -259,7 +260,7 @@ fn main() {
         let color = Vec3::new(255.99, 255.99, 255.99) * color;
 
         *pixel = image::Rgb([color[0] as u8, color[1] as u8, color[2] as u8]);
-    }
+    });
 
     let mut fimg = image::DynamicImage::ImageRgb8(imgbuf).to_rgb32f();
     let (width, height) = fimg.dimensions();

@@ -4,12 +4,12 @@ use crate::ray::Ray;
 use crate::vec3::Vec3;
 
 pub struct Translate {
-    hittable: Box<dyn Hittable>,
+    hittable: Box<dyn Hittable + Sync>,
     offset: Vec3,
 }
 
 impl Translate {
-    pub fn new(hittable: impl 'static + Hittable, offset: impl Into<Vec3>) -> Translate {
+    pub fn new(hittable: impl 'static + Hittable + Sync, offset: impl Into<Vec3>) -> Translate {
         Translate {
             hittable: Box::new(hittable),
             offset: offset.into(),

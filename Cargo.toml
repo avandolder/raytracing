@@ -5,10 +5,11 @@ authors = ["Adam Vandolder <adam.vandolder@gmail.com>"]
 edition = "2024"
 
 [dependencies]
-image = "0.25"
+image = { version = "0.25", features = ["rayon"] }
 itertools = "0.14"
 oidn = "2.3.3"
 rand = "0.9"
+rayon = "1.11.0"
 
 [profile.dev]
 opt-level = 3

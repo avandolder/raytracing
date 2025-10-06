@@ -4,14 +4,14 @@ use crate::ray::Ray;
 use crate::vec3::Vec3;
 
 pub struct RotateY {
-    pub hittable: Box<dyn Hittable>,
+    pub hittable: Box<dyn Hittable + Sync>,
     pub sin_theta: f32,
     pub cos_theta: f32,
     pub bbox: Option<AABB>,
 }
 
 impl RotateY {
-    pub fn new(hittable: impl 'static + Hittable, angle: f32) -> RotateY {
+    pub fn new(hittable: impl 'static + Hittable + Sync, angle: f32) -> RotateY {
         let radians = (std::f32::consts::PI / 180.) * angle;
         let sin_theta = radians.sin();
         let cos_theta = radians.cos();

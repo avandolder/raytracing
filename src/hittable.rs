@@ -17,7 +17,7 @@ pub trait Hittable {
     fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB>;
 }
 
-impl Hittable for Vec<Box<dyn Hittable>> {
+impl Hittable for Vec<Box<dyn Hittable + Sync>> {
     fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
         self.iter()
             .filter_map(|item| item.hit(r, t_min, t_max))
@@ -33,7 +33,7 @@ impl Hittable for Vec<Box<dyn Hittable>> {
     }
 }
 
-pub struct FlipNormals(Box<dyn Hittable>);
+pub struct FlipNormals(Box<dyn Hittable + Sync>);
 
 impl Hittable for FlipNormals {
     fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
@@ -48,6 +48,6 @@ impl Hittable for FlipNormals {
     }
 }
 
-pub fn flip_normals<T: 'static + Hittable>(hittable: T) -> Box<FlipNormals> {
+pub fn flip_normals<T: 'static + Hittable + Sync>(hittable: T) -> Box<FlipNormals> {
     Box::new(FlipNormals(Box::new(hittable)))
 }

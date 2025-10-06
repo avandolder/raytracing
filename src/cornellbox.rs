@@ -8,7 +8,7 @@ use crate::vec3::Vec3;
 pub struct CornellBox {
     pub pmin: Vec3,
     pub pmax: Vec3,
-    pub sides: Vec<Box<dyn Hittable>>,
+    pub sides: Vec<Box<dyn Hittable + Sync>>,
 }
 
 impl CornellBox {
