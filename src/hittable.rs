@@ -20,7 +20,7 @@ pub trait Hittable {
 impl Hittable for Vec<Box<dyn Hittable + Sync>> {
     fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
         self.iter()
-            .filter_map(|item| item.hit(r, t_min, t_max))
+            .filter_map(|item| item.hit(r, t_min, t_max).filter(|r| !r.t.is_nan()))
             .min_by(|r1, r2| r1.t.partial_cmp(&r2.t).unwrap())
     }
 
