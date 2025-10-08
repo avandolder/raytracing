@@ -44,16 +44,12 @@ fn perlin_interp(c: [[[Vec3; 2]; 2]; 2], u: f32, v: f32, w: f32) -> f32 {
         .sum()
 }
 
-pub fn turbulence(mut p: Vec3, depth: usize) -> f32 {
-    let mut weight = 1.;
+pub fn turbulence(p: Vec3, depth: usize) -> f32 {
     (0..depth)
-        .map(|_| {
-            let turb = noise(p) * weight;
-            weight *= 0.5;
-            p *= 2.;
-            turb
+        .fold((0., p, 1.), |(t, p, weight), _| {
+            (t + noise(p) * weight, p * 2., weight * 0.5)
         })
-        .sum::<f32>()
+        .0
         .abs()
 }
 
