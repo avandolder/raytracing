@@ -1,5 +1,6 @@
-use std::ops::{
-    Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign,
+use std::{
+    iter::Sum,
+    ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -202,5 +203,11 @@ impl From<(f32, f32, f32)> for Vec3 {
 impl From<(i32, i32, i32)> for Vec3 {
     fn from((x, y, z): (i32, i32, i32)) -> Self {
         Vec3::new(x as f32, y as f32, z as f32)
+    }
+}
+
+impl Sum for Vec3 {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.reduce(Self::add).unwrap_or_default()
     }
 }
