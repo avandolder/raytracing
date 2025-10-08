@@ -246,8 +246,7 @@ fn main() {
         1.,
     );
 
-    let mut imgbuf = image::ImageBuffer::new(nx, ny);
-
+    let mut imgbuf = image::Rgb32FImage::new(nx, ny);
     imgbuf.par_enumerate_pixels_mut().for_each(|(i, j, pixel)| {
         let j = ny - j - 1; // Flip points vertically.
         let mut rng = rand::rng();
@@ -256,26 +255,16 @@ fn main() {
             let v = (j as f32 + rng.random::<f32>()) / ny as f32;
             col + color(&cam.get_ray(u, v), &world, 0)
         }) / ns as f32;
-        let color = Vec3::new(color[0].sqrt(), color[1].sqrt(), color[2].sqrt());
-        let color = Vec3::new(255.99, 255.99, 255.99) * color;
-
-        *pixel = image::Rgb([color[0] as u8, color[1] as u8, color[2] as u8]);
+        *pixel = image::Rgb([color[0].sqrt(), color[1].sqrt(), color[2].sqrt()]);
     });
 
-    let mut fimg = image::DynamicImage::ImageRgb8(imgbuf).to_rgb32f();
-    let (width, height) = fimg.dimensions();
+    let image::FlatSamples { samples, .. } = imgbuf.as_flat_samples_mut();
+    let device = oidn::Device::cpu();
+    oidn::RayTracing::new(&device)
+        .image_dimensions(nx as usize, ny as usize)
+        .filter_quality(oidn::Quality::Fast)
+        .filter_in_place(samples)
+        .expect("failed to denoise");
 
-    {
-        let fpxs = fimg.as_flat_samples_mut();
-        let device = oidn::Device::cpu();
-        oidn::RayTracing::new(&device)
-            .image_dimensions(width as usize, height as usize)
-            .filter_in_place(fpxs.samples)
-            .expect("failed to denoise");
-    }
-
-    image::DynamicImage::ImageRgb32F(fimg)
-        .to_rgb8()
-        .save("out.png")
-        .unwrap();
+    imgbuf.save("out.exr").unwrap();
 }
