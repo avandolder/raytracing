@@ -14,9 +14,15 @@ mod texture;
 mod translate;
 mod vec3;
 
-use image::GenericImageView;
-use rand::Rng;
-use rayon::iter::ParallelIterator;
+use std::{cell::LazyCell, fs::File, io, iter, mem, ops::ControlFlow, slice};
+
+use image::GenericImageView as _;
+use itertools::Itertools as _;
+use rand::Rng as _;
+use rayon::{
+    iter::{IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator as _},
+    slice::ParallelSliceMut as _,
+};
 
 use bvh::BVH;
 use camera::Camera;
@@ -32,7 +38,26 @@ use texture::Texture;
 use translate::Translate;
 use vec3::Vec3;
 
-fn random_scene() -> Vec<Box<dyn Hittable + Sync>> {
+const COLOR_CHANNELS: usize = 3;
+
+#[derive(Clone, Debug)]
+struct Image {
+    data: Vec<f32>,
+    width: usize,
+    height: usize,
+}
+
+impl Image {
+    fn new(width: usize, height: usize) -> Self {
+        Self {
+            data: vec![0.; width * height * COLOR_CHANNELS],
+            width,
+            height,
+        }
+    }
+}
+
+fn random_scene(aspect_ratio: f32) -> (BVH, Camera) {
     let n = 500;
     let mut rng = rand::rng();
     let mut world: Vec<Box<dyn Hittable + Sync>> = Vec::with_capacity(n + 1);
@@ -59,7 +84,7 @@ fn random_scene() -> Vec<Box<dyn Hittable + Sync>> {
             }
 
             let choose_mat = rng.random::<f32>();
-            if choose_mat < 0.8 {
+            if choose_mat < 0.65 {
                 world.push(Box::new(MovingSphere::new(
                     center,
                     center + Vec3::new(0., 0.5 * rng.random::<f32>(), 0.),
@@ -71,6 +96,12 @@ fn random_scene() -> Vec<Box<dyn Hittable + Sync>> {
                         rng.random::<f32>() * rng.random::<f32>(),
                         rng.random::<f32>() * rng.random::<f32>(),
                     ))),
+                )));
+            } else if choose_mat < 0.8 {
+                world.push(Box::new(Sphere::new(
+                    center,
+                    0.2,
+                    Material::Diffuse(Texture::noise(4.)),
                 )));
             } else if choose_mat < 0.95 {
                 world.push(Box::new(Sphere::new(
@@ -111,7 +142,27 @@ fn random_scene() -> Vec<Box<dyn Hittable + Sync>> {
         1.,
         Material::Metal(Vec3::new(0.7, 0.6, 0.5), 0.),
     )));
-    world
+
+    // world.push(Box::new(Sphere::new(
+    //     Vec3::new(-100., 100., -100.),
+    //     50.,
+    //     Material::Light(Texture::solid(Vec3::new(15., 15., 15.))),
+    // )));
+
+    (
+        BVH::new(&mut world, 0., 1.),
+        Camera::new(
+            Vec3::new(13., 2., 3.),
+            Vec3::new(0., 0., 0.),
+            Vec3::new(0., 1., 0.),
+            20.,
+            aspect_ratio,
+            0.,
+            10.,
+            0.,
+            1.,
+        ),
+    )
 }
 
 fn two_spheres() -> Vec<Box<dyn Hittable + Sync>> {
@@ -178,34 +229,57 @@ fn simple_light() -> Vec<Box<dyn Hittable + Sync>> {
     ]
 }
 
-fn cornell_box() -> Vec<Box<dyn Hittable + Sync>> {
+fn cornell_box(aspect_ratio: f32) -> (BVH, Camera) {
     let red = Material::Diffuse(Texture::solid((0.65, 0.05, 0.05)));
     let white = Material::Diffuse(Texture::solid((0.73, 0.73, 0.73)));
     let green = Material::Diffuse(Texture::solid((0.12, 0.45, 0.15)));
     let light = Material::Light(Texture::solid((15., 15., 15.)));
 
-    vec![
-        flip_normals(YZRect::new(0., 555., 0., 555., 555., red.clone())),
-        Box::new(YZRect::new(0., 555., 0., 555., 0., green.clone())),
-        Box::new(XZRect::new(213., 343., 227., 332., 554., light.clone())),
-        flip_normals(XZRect::new(0., 555., 0., 555., 555., white.clone())),
-        Box::new(XZRect::new(0., 555., 0., 555., 0., white.clone())),
-        flip_normals(XYRect::new(0., 555., 0., 555., 555., white.clone())),
-        Box::new(Translate::new(
-            RotateY::new(
-                CornellBox::new((0, 0, 0), (165, 165, 165), white.clone()),
-                -18.,
-            ),
-            (130, 0, 65),
-        )),
-        Box::new(Translate::new(
-            RotateY::new(
-                CornellBox::new((0, 0, 0), (165, 330, 165), white.clone()),
-                15.,
-            ),
-            (265, 0, 295),
-        )),
-    ]
+    let lookfrom = Vec3::new(278., 278., -800.);
+    let lookat = Vec3::new(278., 278., 0.);
+    let dist_to_focus = 10.;
+    let aperture = 0.;
+    let vfov = 40.;
+
+    (
+        BVH::new(
+            &mut vec![
+                flip_normals(YZRect::new(0., 555., 0., 555., 555., red.clone())),
+                Box::new(YZRect::new(0., 555., 0., 555., 0., green.clone())),
+                Box::new(XZRect::new(213., 343., 227., 332., 554., light.clone())),
+                flip_normals(XZRect::new(0., 555., 0., 555., 555., white.clone())),
+                Box::new(XZRect::new(0., 555., 0., 555., 0., white.clone())),
+                flip_normals(XYRect::new(0., 555., 0., 555., 555., white.clone())),
+                Box::new(Translate::new(
+                    RotateY::new(
+                        CornellBox::new((0, 0, 0), (165, 165, 165), white.clone()),
+                        -18.,
+                    ),
+                    (130, 0, 65),
+                )),
+                Box::new(Translate::new(
+                    RotateY::new(
+                        CornellBox::new((0, 0, 0), (165, 330, 165), white.clone()),
+                        15.,
+                    ),
+                    (265, 0, 295),
+                )),
+            ],
+            0.,
+            1.,
+        ),
+        Camera::new(
+            lookfrom,
+            lookat,
+            Vec3::new(0., 1., 0.),
+            vfov,
+            aspect_ratio,
+            aperture,
+            dist_to_focus,
+            0.,
+            1.,
+        ),
+    )
 }
 
 fn color(r: &Ray, world: &dyn Hittable, depth: i32) -> Vec3 {
@@ -218,53 +292,121 @@ fn color(r: &Ray, world: &dyn Hittable, depth: i32) -> Vec3 {
             _ => emitted,
         }
     } else {
-        Vec3::new(0., 0., 0.)
+        let unit_direction = r.direction().unit_vector();
+        let t = 0.5 * (unit_direction.y() + 1.);
+        (1. - t) * Vec3::new(1., 1., 1.) + t * Vec3::new(0.5, 0.7, 1.)
     }
 }
 
-fn main() {
-    let nx = 800;
-    let ny = 800;
-    let ns = 100;
+fn write_image_as_pfm(mut w: impl io::Write, image: &Image) -> io::Result<()> {
+    writeln!(w, "PF")?;
+    writeln!(w, "{} {}", image.width, image.height)?;
 
-    let world = BVH::new(&mut cornell_box(), 0., 1.);
+    // Endianness: negative number for little, positive for big
+    #[cfg(target_endian = "little")]
+    writeln!(w, "-1")?;
+    #[cfg(target_endian = "big")]
+    writeln!(w, "1")?;
 
-    let lookfrom = Vec3::new(278., 278., -800.);
-    let lookat = Vec3::new(278., 278., 0.);
-    let dist_to_focus = 10.;
-    let aperture = 0.;
-    let vfov = 40.;
-    let cam = Camera::new(
-        lookfrom,
-        lookat,
-        Vec3::new(0., 1., 0.),
-        vfov,
-        (nx as f32) / (ny as f32),
-        aperture,
-        dist_to_focus,
-        0.,
-        1.,
-    );
+    w.write_all(unsafe {
+        slice::from_raw_parts(
+            image.data.as_ptr() as *const u8,
+            image.data.len() * mem::size_of::<f32>(),
+            // mem::size_of_val(&image.data),
+        )
+    })
+}
 
-    let mut imgbuf = image::Rgb32FImage::new(nx, ny);
-    imgbuf.par_enumerate_pixels_mut().for_each(|(i, j, pixel)| {
-        let j = ny - j - 1; // Flip points vertically.
-        let mut rng = rand::rng();
-        let color = (0..ns).fold(Vec3::default(), |col, _| {
-            let u = (i as f32 + rng.random::<f32>()) / nx as f32;
-            let v = (j as f32 + rng.random::<f32>()) / ny as f32;
-            col + color(&cam.get_ray(u, v), &world, 0)
-        }) / ns as f32;
-        *pixel = image::Rgb([color[0].sqrt(), color[1].sqrt(), color[2].sqrt()]);
+fn cast_more_rays(
+    scene: &(dyn Hittable + Sync),
+    camera: &Camera,
+    image: &mut Image,
+    prev: u32,
+    n: u32,
+) {
+    let (wf, hf, nf) = (image.width as f32, image.height as f32, n as f32);
+
+    image
+        .data
+        .par_chunks_exact_mut(3)
+        .enumerate()
+        .for_each_init(rand::rng, |rng, (idx, px)| {
+            let (x, y) = (idx % image.width, idx / image.height);
+            let color = (0..n)
+                .map(|_| {
+                    let u = (x as f32 + rng.random::<f32>()) / wf;
+                    let v = (y as f32 + rng.random::<f32>()) / hf;
+                    color(&camera.get_ray(u, v), scene, 0)
+                })
+                .sum::<Vec3>();
+            (0..3).for_each(|i| {
+                px[i] = ((px[i] * px[i] * prev as f32 + color[i]) / (prev as f32 + nf)).sqrt()
+            });
+        });
+}
+
+fn progressive_cast(
+    scene: &(dyn Hittable + Sync),
+    camera: &Camera,
+    w: usize,
+    h: usize,
+    total_rays: u32,
+) -> impl Iterator<Item = Image> {
+    let mut img = Image::new(w, h);
+
+    let (mut step, mut so_far) = (1, 0);
+    iter::from_fn(move || {
+        if so_far >= total_rays {
+            return None;
+        }
+
+        cast_more_rays(
+            scene,
+            camera,
+            &mut img,
+            so_far,
+            (so_far + step).min(total_rays),
+        );
+        so_far += step;
+        step *= 2;
+        Some(img.clone())
+    })
+}
+
+thread_local! {
+    static OIDN_DEVICE: LazyCell<oidn::Device> = LazyCell::new(|| oidn::Device::new());
+}
+
+fn denoise(image: &mut Image) {
+    OIDN_DEVICE.with(|device| {
+        oidn::RayTracing::new(device)
+            .image_dimensions(image.width, image.height)
+            .filter_quality(oidn::Quality::High)
+            .filter_in_place(&mut image.data)
+            .expect("failed to denoise")
     });
+}
 
-    let image::FlatSamples { samples, .. } = imgbuf.as_flat_samples_mut();
-    let device = oidn::Device::cpu();
-    oidn::RayTracing::new(&device)
-        .image_dimensions(nx as usize, ny as usize)
-        .filter_quality(oidn::Quality::Fast)
-        .filter_in_place(samples)
-        .expect("failed to denoise");
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let (width, height) = (1200, 1200);
+    let aspect_ratio = width as f32 / height as f32;
 
-    imgbuf.save("out.exr").unwrap();
+    let (world, camera) = random_scene(aspect_ratio);
+
+    let Some(mut img) = progressive_cast(&world, &camera, width, height, 50)
+        .enumerate()
+        .try_fold(None, |_, (i, img)| -> io::Result<_> {
+            let f = File::create(format!("out-{:02}.pfm", i))?;
+            write_image_as_pfm(f, &img)?;
+            Ok(Some(img))
+        })?
+    else {
+        return Ok(());
+    };
+
+    denoise(&mut img);
+    let f = File::create("out-denoised.pfm")?;
+    write_image_as_pfm(f, &img)?;
+
+    Ok(())
 }
