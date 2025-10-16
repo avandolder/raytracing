@@ -19,6 +19,7 @@ use std::{cell::LazyCell, fs::File, io, mem, slice};
 
 use clap::{CommandFactory as _, Parser, ValueEnum};
 use image::GenericImageView as _;
+use itertools::iproduct;
 use rand::Rng as _;
 use rayon::{
     iter::{IndexedParallelIterator as _, ParallelIterator as _},
@@ -80,55 +81,65 @@ fn random_scene(config: &Config) -> Scene {
         Material::Diffuse(checker),
     )));
 
-    for a in -11..11 {
-        for b in -11..11 {
+    world.extend(iproduct!(-11..11, -11..11).map(|(a, b)| {
+        let center = loop {
             let center = Vec3::new(
                 a as f32 + 0.9 * rng.random::<f32>(),
                 0.2,
                 b as f32 + 0.9 * rng.random::<f32>(),
             );
-            if (center - Vec3::new(4., 0.2, 0.)).length() <= 0.9 {
-                continue;
+            if (center - Vec3::new(4., 0.2, 0.)).length() > 0.9 {
+                break center;
             }
+        };
 
-            let choose_mat = rng.random::<f32>();
-            if choose_mat < 0.65 {
-                world.push(Box::new(MovingSphere::new(
-                    center,
-                    center + Vec3::new(0., 0.5 * rng.random::<f32>(), 0.),
-                    0.,
-                    1.,
-                    0.2,
-                    Material::Diffuse(Texture::solid(Vec3::new(
-                        rng.random::<f32>() * rng.random::<f32>(),
-                        rng.random::<f32>() * rng.random::<f32>(),
-                        rng.random::<f32>() * rng.random::<f32>(),
-                    ))),
-                )));
-            } else if choose_mat < 0.8 {
-                world.push(Box::new(Sphere::new(
-                    center,
-                    0.2,
-                    Material::Diffuse(Texture::noise(4.)),
-                )));
-            } else if choose_mat < 0.95 {
-                world.push(Box::new(Sphere::new(
-                    center,
-                    0.2,
-                    Material::Metal(
-                        Vec3::new(
-                            0.5 * (1. + rng.random::<f32>()),
-                            0.5 * (1. + rng.random::<f32>()),
-                            0.5 * (1. + rng.random::<f32>()),
-                        ),
-                        0.5 * rng.random::<f32>(),
+        let choose_mat = rng.random::<f32>();
+        if choose_mat < 0.25 {
+            Box::new(MovingSphere::new(
+                center,
+                center + Vec3::new(0., 0.5 * rng.random::<f32>(), 0.),
+                0.,
+                1.,
+                0.2,
+                Material::Diffuse(Texture::solid(Vec3::new(
+                    rng.random::<f32>() * rng.random::<f32>(),
+                    rng.random::<f32>() * rng.random::<f32>(),
+                    rng.random::<f32>() * rng.random::<f32>(),
+                ))),
+            )) as Box<dyn Hittable + Sync>
+        } else if choose_mat < 0.5 {
+            Box::new(ConstantMedium::new(
+                Sphere::new(center, 0.2, Material::Diffuse(Texture::solid((1., 1., 1.)))),
+                0.01,
+                Texture::solid(Vec3::new(
+                    rng.random::<f32>() * rng.random::<f32>(),
+                    rng.random::<f32>() * rng.random::<f32>(),
+                    rng.random::<f32>() * rng.random::<f32>(),
+                )),
+            )) as Box<dyn Hittable + Sync>
+        } else if choose_mat < 0.65 {
+            Box::new(Sphere::new(
+                center,
+                0.2,
+                Material::Diffuse(Texture::noise(4.)),
+            ))
+        } else if choose_mat < 0.95 {
+            Box::new(Sphere::new(
+                center,
+                0.2,
+                Material::Metal(
+                    Vec3::new(
+                        0.5 * (1. + rng.random::<f32>()),
+                        0.5 * (1. + rng.random::<f32>()),
+                        0.5 * (1. + rng.random::<f32>()),
                     ),
-                )));
-            } else {
-                world.push(Box::new(Sphere::new(center, 0.2, Material::Glass(1.5))));
-            }
+                    0.5 * rng.random::<f32>(),
+                ),
+            ))
+        } else {
+            Box::new(Sphere::new(center, 0.2, Material::Glass(1.5)))
         }
-    }
+    }));
 
     world.push(Box::new(Sphere::new(
         Vec3::new(0., 1., 0.),
