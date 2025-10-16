@@ -3,6 +3,7 @@ name = "raytracing"
 version = "0.2.0"
 authors = ["Adam Vandolder <adam.vandolder@gmail.com>"]
 edition = "2024"
+description = "Simple raytracer based off Ray Tracing in One Weekend"
 
 [dependencies]
 image = { version = "0.25", features = ["rayon"] }
