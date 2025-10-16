@@ -65,7 +65,7 @@ struct Scene {
     use_ambient_light: bool,
 }
 
-fn random_scene(aspect_ratio: f32) -> Scene {
+fn random_scene(config: &Config) -> Scene {
     let n = 500;
     let mut rng = rand::rng();
     let mut world: Vec<Box<dyn Hittable + Sync>> = Vec::with_capacity(n + 1);
@@ -158,7 +158,7 @@ fn random_scene(aspect_ratio: f32) -> Scene {
             Vec3::new(0., 0., 0.),
             Vec3::new(0., 1., 0.),
             20.,
-            aspect_ratio,
+            config.aspect_ratio,
             0.,
             10.,
             0.,
@@ -232,7 +232,7 @@ fn simple_light() -> Vec<Box<dyn Hittable + Sync>> {
     ]
 }
 
-fn cornell_box(aspect_ratio: f32) -> Scene {
+fn cornell_box(config: &Config) -> Scene {
     let red = Material::Diffuse(Texture::solid((0.65, 0.05, 0.05)));
     let white = Material::Diffuse(Texture::solid((0.73, 0.73, 0.73)));
     let green = Material::Diffuse(Texture::solid((0.12, 0.45, 0.15)));
@@ -276,7 +276,7 @@ fn cornell_box(aspect_ratio: f32) -> Scene {
             lookat,
             Vec3::new(0., 1., 0.),
             vfov,
-            aspect_ratio,
+            config.aspect_ratio,
             aperture,
             dist_to_focus,
             0.,
@@ -286,7 +286,7 @@ fn cornell_box(aspect_ratio: f32) -> Scene {
     }
 }
 
-fn cornell_fog(aspect_ratio: f32) -> Scene {
+fn cornell_fog(config: &Config) -> Scene {
     let red = Material::Diffuse(Texture::solid((0.65, 0.05, 0.05)));
     let white = Material::Diffuse(Texture::solid((0.73, 0.73, 0.73)));
     let green = Material::Diffuse(Texture::solid((0.12, 0.45, 0.15)));
@@ -338,7 +338,7 @@ fn cornell_fog(aspect_ratio: f32) -> Scene {
             lookat,
             Vec3::new(0., 1., 0.),
             vfov,
-            aspect_ratio,
+            config.aspect_ratio,
             aperture,
             dist_to_focus,
             0.,
@@ -411,12 +411,12 @@ fn cast_more_rays(scene: &Scene, image: &mut Image, prev: u32, n: u32) {
         });
 }
 
-fn progressive_cast(scene: &Scene, w: usize, h: usize, total_rays: u32) -> io::Result<Image> {
-    let mut img = Image::new(w, h);
+fn progressive_cast(config: &Config, scene: &Scene) -> io::Result<Image> {
+    let mut img = Image::new(config.width, config.height);
 
     let (mut i, mut step, mut so_far) = (0, 1, 0);
-    while so_far < total_rays {
-        cast_more_rays(scene, &mut img, so_far, (so_far + step).min(total_rays));
+    while so_far < config.samples {
+        cast_more_rays(scene, &mut img, so_far, (so_far + step).min(config.samples));
 
         write_image_as_pfm(File::create(format!("out-{:02}.pfm", i))?, &img)?;
 
@@ -472,6 +472,12 @@ struct Options {
     #[arg(long, value_enum, default_value_t = Scenes::Random)]
     scene: Scenes,
 }
+
+struct Config {
+    width: usize,
+    height: usize,
+    aspect_ratio: f32,
+    samples: u32,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -481,20 +487,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    let (width, height) = (options.width, options.height);
-    let aspect_ratio = width as f32 / height as f32;
+    let config = Config {
+        width: options.width,
+        height: options.height,
+        aspect_ratio: options.width as f32 / options.height as f32,
+        samples: options.samples,
+    };
 
     let scene = match options.scene {
-        Scenes::Random => random_scene(aspect_ratio),
-        Scenes::CornellBox => cornell_box(aspect_ratio),
-        Scenes::CornellFog => cornell_fog(aspect_ratio),
+        Scenes::Random => random_scene(&config),
+        Scenes::CornellBox => cornell_box(&config),
+        Scenes::CornellFog => cornell_fog(&config),
     };
 
     let mut img = if options.progressive {
-        progressive_cast(&scene, width, height, options.samples)?
+        progressive_cast(&config, &scene)?
     } else {
-        let mut img = Image::new(width, height);
-        cast_more_rays(&scene, &mut img, 0, options.samples);
+        let mut img = Image::new(config.width, config.height);
+        cast_more_rays(&scene, &mut img, 0, config.samples);
         img
     };
 
