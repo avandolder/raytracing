@@ -11,6 +11,7 @@ pub enum Material {
     Diffuse(Texture),
     Light(Texture),
     Metal(Vec3, f32),
+    Isotropic(Texture),
 }
 
 fn random_in_unit_sphere() -> Vec3 {
@@ -100,6 +101,10 @@ impl Material {
                     None
                 }
             }
+            Material::Isotropic(texture) => Some((
+                texture.value(rec.u, rec.v, rec.p),
+                Ray::new(rec.p, random_in_unit_sphere(), r_in.time()),
+            )),
         }
     }
 

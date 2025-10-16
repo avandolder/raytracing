@@ -1,6 +1,7 @@
 mod aabb;
 mod bvh;
 mod camera;
+mod constant_medium;
 mod cornellbox;
 mod hittable;
 mod material;
@@ -26,6 +27,7 @@ use rayon::{
 
 use bvh::BVH;
 use camera::Camera;
+use constant_medium::ConstantMedium;
 use cornellbox::CornellBox;
 use hittable::{Hittable, flip_normals};
 use material::Material;
@@ -284,6 +286,68 @@ fn cornell_box(aspect_ratio: f32) -> Scene {
     }
 }
 
+fn cornell_fog(aspect_ratio: f32) -> Scene {
+    let red = Material::Diffuse(Texture::solid((0.65, 0.05, 0.05)));
+    let white = Material::Diffuse(Texture::solid((0.73, 0.73, 0.73)));
+    let green = Material::Diffuse(Texture::solid((0.12, 0.45, 0.15)));
+    let light = Material::Light(Texture::solid((7., 7., 7.)));
+
+    let lookfrom = Vec3::new(278., 278., -800.);
+    let lookat = Vec3::new(278., 278., 0.);
+    let dist_to_focus = 10.;
+    let aperture = 0.;
+    let vfov = 40.;
+
+    Scene {
+        geometry: BVH::new(
+            &mut vec![
+                flip_normals(YZRect::new(0., 555., 0., 555., 555., green.clone())),
+                Box::new(YZRect::new(0., 555., 0., 555., 0., red.clone())),
+                Box::new(XZRect::new(113., 443., 127., 432., 554., light.clone())),
+                flip_normals(XZRect::new(0., 555., 0., 555., 555., white.clone())),
+                Box::new(XZRect::new(0., 555., 0., 555., 0., white.clone())),
+                flip_normals(XYRect::new(0., 555., 0., 555., 555., white.clone())),
+                Box::new(ConstantMedium::new(
+                    Translate::new(
+                        RotateY::new(
+                            CornellBox::new((0, 0, 0), (165, 165, 165), white.clone()),
+                            -18.,
+                        ),
+                        (130, 0, 65),
+                    ),
+                    0.01,
+                    Texture::solid((1., 1., 1.)),
+                )),
+                Box::new(ConstantMedium::new(
+                    Translate::new(
+                        RotateY::new(
+                            CornellBox::new((0, 0, 0), (165, 330, 165), white.clone()),
+                            15.,
+                        ),
+                        (265, 0, 295),
+                    ),
+                    0.01,
+                    Texture::solid((0., 0., 0.)),
+                )),
+            ],
+            0.,
+            1.,
+        ),
+        camera: Camera::new(
+            lookfrom,
+            lookat,
+            Vec3::new(0., 1., 0.),
+            vfov,
+            aspect_ratio,
+            aperture,
+            dist_to_focus,
+            0.,
+            1.,
+        ),
+        use_ambient_light: false,
+    }
+}
+
 fn color(r: &Ray, world: &dyn Hittable, depth: i32, use_ambient_light: bool) -> Vec3 {
     if let Some(rec) = world.hit(r, 0.001, f32::MAX) {
         let emitted = rec.mat.emitted(rec.u, rec.v, rec.p);
@@ -382,6 +446,7 @@ fn denoise(image: &mut Image) {
 enum Scenes {
     Random,
     CornellBox,
+    CornellFog,
 }
 
 #[derive(Debug, Parser)]
@@ -422,6 +487,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let scene = match options.scene {
         Scenes::Random => random_scene(aspect_ratio),
         Scenes::CornellBox => cornell_box(aspect_ratio),
+        Scenes::CornellFog => cornell_fog(aspect_ratio),
     };
 
     let mut img = if options.progressive {
