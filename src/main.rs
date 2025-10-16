@@ -315,8 +315,7 @@ fn write_image_as_pfm(mut w: impl io::Write, image: &Image) -> io::Result<()> {
     w.write_all(unsafe {
         slice::from_raw_parts(
             image.data.as_ptr() as *const u8,
-            image.data.len() * mem::size_of::<f32>(),
-            // mem::size_of_val(&image.data),
+            mem::size_of_val(image.data.as_slice()),
         )
     })
 }
