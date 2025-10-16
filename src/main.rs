@@ -14,14 +14,13 @@ mod texture;
 mod translate;
 mod vec3;
 
-use std::{cell::LazyCell, fs::File, io, iter, mem, ops::ControlFlow, slice};
+use std::{cell::LazyCell, fs::File, io, mem, slice};
 
 use clap::{CommandFactory as _, Parser, ValueEnum};
 use image::GenericImageView as _;
-use itertools::Itertools as _;
 use rand::Rng as _;
 use rayon::{
-    iter::{IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator as _},
+    iter::{IndexedParallelIterator as _, ParallelIterator as _},
     slice::ParallelSliceMut as _,
 };
 
@@ -367,7 +366,7 @@ fn progressive_cast(scene: &Scene, w: usize, h: usize, total_rays: u32) -> io::R
 }
 
 thread_local! {
-    static OIDN_DEVICE: LazyCell<oidn::Device> = LazyCell::new(|| oidn::Device::new());
+    static OIDN_DEVICE: LazyCell<oidn::Device> = LazyCell::new(oidn::Device::new);
 }
 
 fn denoise(image: &mut Image) {
