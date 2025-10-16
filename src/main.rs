@@ -58,7 +58,13 @@ impl Image {
     }
 }
 
-fn random_scene(aspect_ratio: f32) -> (BVH, Camera) {
+struct Scene {
+    geometry: BVH,
+    camera: Camera,
+    use_ambient_light: bool,
+}
+
+fn random_scene(aspect_ratio: f32) -> Scene {
     let n = 500;
     let mut rng = rand::rng();
     let mut world: Vec<Box<dyn Hittable + Sync>> = Vec::with_capacity(n + 1);
@@ -144,15 +150,9 @@ fn random_scene(aspect_ratio: f32) -> (BVH, Camera) {
         Material::Metal(Vec3::new(0.7, 0.6, 0.5), 0.),
     )));
 
-    // world.push(Box::new(Sphere::new(
-    //     Vec3::new(-100., 100., -100.),
-    //     50.,
-    //     Material::Light(Texture::solid(Vec3::new(15., 15., 15.))),
-    // )));
-
-    (
-        BVH::new(&mut world, 0., 1.),
-        Camera::new(
+    Scene {
+        geometry: BVH::new(&mut world, 0., 1.),
+        camera: Camera::new(
             Vec3::new(13., 2., 3.),
             Vec3::new(0., 0., 0.),
             Vec3::new(0., 1., 0.),
@@ -163,7 +163,8 @@ fn random_scene(aspect_ratio: f32) -> (BVH, Camera) {
             0.,
             1.,
         ),
-    )
+        use_ambient_light: true,
+    }
 }
 
 fn two_spheres() -> Vec<Box<dyn Hittable + Sync>> {
@@ -230,7 +231,7 @@ fn simple_light() -> Vec<Box<dyn Hittable + Sync>> {
     ]
 }
 
-fn cornell_box(aspect_ratio: f32) -> (BVH, Camera) {
+fn cornell_box(aspect_ratio: f32) -> Scene {
     let red = Material::Diffuse(Texture::solid((0.65, 0.05, 0.05)));
     let white = Material::Diffuse(Texture::solid((0.73, 0.73, 0.73)));
     let green = Material::Diffuse(Texture::solid((0.12, 0.45, 0.15)));
@@ -242,8 +243,8 @@ fn cornell_box(aspect_ratio: f32) -> (BVH, Camera) {
     let aperture = 0.;
     let vfov = 40.;
 
-    (
-        BVH::new(
+    Scene {
+        geometry: BVH::new(
             &mut vec![
                 flip_normals(YZRect::new(0., 555., 0., 555., 555., red.clone())),
                 Box::new(YZRect::new(0., 555., 0., 555., 0., green.clone())),
@@ -269,7 +270,7 @@ fn cornell_box(aspect_ratio: f32) -> (BVH, Camera) {
             0.,
             1.,
         ),
-        Camera::new(
+        camera: Camera::new(
             lookfrom,
             lookat,
             Vec3::new(0., 1., 0.),
@@ -280,22 +281,25 @@ fn cornell_box(aspect_ratio: f32) -> (BVH, Camera) {
             0.,
             1.,
         ),
-    )
+        use_ambient_light: false,
+    }
 }
 
-fn color(r: &Ray, world: &dyn Hittable, depth: i32) -> Vec3 {
+fn color(r: &Ray, world: &dyn Hittable, depth: i32, use_ambient_light: bool) -> Vec3 {
     if let Some(rec) = world.hit(r, 0.001, f32::MAX) {
         let emitted = rec.mat.emitted(rec.u, rec.v, rec.p);
         match rec.mat.scatter(r, &rec) {
             Some((attenuation, scattered)) if depth < 50 => {
-                emitted + attenuation * color(&scattered, world, depth + 1)
+                emitted + attenuation * color(&scattered, world, depth + 1, use_ambient_light)
             }
             _ => emitted,
         }
-    } else {
+    } else if use_ambient_light {
         let unit_direction = r.direction().unit_vector();
         let t = 0.5 * (unit_direction.y() + 1.);
         (1. - t) * Vec3::new(1., 1., 1.) + t * Vec3::new(0.5, 0.7, 1.)
+    } else {
+        Vec3::new(0., 0., 0.)
     }
 }
 
@@ -318,13 +322,7 @@ fn write_image_as_pfm(mut w: impl io::Write, image: &Image) -> io::Result<()> {
     })
 }
 
-fn cast_more_rays(
-    scene: &(dyn Hittable + Sync),
-    camera: &Camera,
-    image: &mut Image,
-    prev: u32,
-    n: u32,
-) {
+fn cast_more_rays(scene: &Scene, image: &mut Image, prev: u32, n: u32) {
     let (wf, hf, nf) = (image.width as f32, image.height as f32, n as f32);
 
     image
@@ -337,7 +335,12 @@ fn cast_more_rays(
                 .map(|_| {
                     let u = (x as f32 + rng.random::<f32>()) / wf;
                     let v = (y as f32 + rng.random::<f32>()) / hf;
-                    color(&camera.get_ray(u, v), scene, 0)
+                    color(
+                        &scene.camera.get_ray(u, v),
+                        &scene.geometry,
+                        0,
+                        scene.use_ambient_light,
+                    )
                 })
                 .sum::<Vec3>();
             (0..3).for_each(|i| {
@@ -346,32 +349,21 @@ fn cast_more_rays(
         });
 }
 
-fn progressive_cast(
-    scene: &(dyn Hittable + Sync),
-    camera: &Camera,
-    w: usize,
-    h: usize,
-    total_rays: u32,
-) -> impl Iterator<Item = Image> {
+fn progressive_cast(scene: &Scene, w: usize, h: usize, total_rays: u32) -> io::Result<Image> {
     let mut img = Image::new(w, h);
 
-    let (mut step, mut so_far) = (1, 0);
-    iter::from_fn(move || {
-        if so_far >= total_rays {
-            return None;
-        }
+    let (mut i, mut step, mut so_far) = (0, 1, 0);
+    while so_far < total_rays {
+        cast_more_rays(scene, &mut img, so_far, (so_far + step).min(total_rays));
 
-        cast_more_rays(
-            scene,
-            camera,
-            &mut img,
-            so_far,
-            (so_far + step).min(total_rays),
-        );
+        write_image_as_pfm(File::create(format!("out-{:02}.pfm", i))?, &img)?;
+
+        i += 1;
         so_far += step;
         step *= 2;
-        Some(img.clone())
-    })
+    }
+
+    Ok(img)
 }
 
 thread_local! {
@@ -388,6 +380,12 @@ fn denoise(image: &mut Image) {
     });
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+enum Scenes {
+    Random,
+    CornellBox,
+}
+
 #[derive(Debug, Parser)]
 #[command(version, about, disable_help_flag = true)]
 struct Options {
@@ -397,14 +395,23 @@ struct Options {
     height: usize,
 
     #[arg(short, long)]
+    progressive: bool,
+
+    #[arg(short, long)]
     denoise: bool,
+
+    #[arg(short, long, default_value_t = 50)]
+    samples: u32,
 
     #[arg(short = '?', long)]
     help: bool,
+
+    #[arg(long, value_enum, default_value_t = Scenes::Random)]
+    scene: Scenes,
+}
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let (width, height) = (1200, 1200);
     let options = Options::parse();
     if options.help {
         Options::command().print_help()?;
@@ -414,17 +421,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (width, height) = (options.width, options.height);
     let aspect_ratio = width as f32 / height as f32;
 
-    let (world, camera) = random_scene(aspect_ratio);
+    let scene = match options.scene {
+        Scenes::Random => random_scene(aspect_ratio),
+        Scenes::CornellBox => cornell_box(aspect_ratio),
+    };
 
-    let Some(mut img) = progressive_cast(&world, &camera, width, height, 50)
-        .enumerate()
-        .try_fold(None, |_, (i, img)| -> io::Result<_> {
-            let f = File::create(format!("out-{:02}.pfm", i))?;
-            write_image_as_pfm(f, &img)?;
-            Ok(Some(img))
-        })?
-    else {
-        return Ok(());
+    let mut img = if options.progressive {
+        progressive_cast(&scene, width, height, options.samples)?
+    } else {
+        let mut img = Image::new(width, height);
+        cast_more_rays(&scene, &mut img, 0, options.samples);
+        img
     };
 
     if options.denoise {
