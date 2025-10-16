@@ -6,12 +6,12 @@ edition = "2024"
 description = "Simple raytracer based off Ray Tracing in One Weekend"
 
 [dependencies]
-image = { version = "0.25", features = ["rayon"] }
 clap = { version = "4", features = ["derive"] }
+image = "0.25"
 itertools = "0.14"
 oidn = "2.3.3"
 rand = "0.9"
-rayon = "1.11.0"
+rayon = "1"
 
 [profile.dev]
 opt-level = 3
