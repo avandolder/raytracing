@@ -16,6 +16,7 @@ mod vec3;
 
 use std::{cell::LazyCell, fs::File, io, iter, mem, ops::ControlFlow, slice};
 
+use clap::{CommandFactory as _, Parser, ValueEnum};
 use image::GenericImageView as _;
 use itertools::Itertools as _;
 use rand::Rng as _;
@@ -387,8 +388,30 @@ fn denoise(image: &mut Image) {
     });
 }
 
+#[derive(Debug, Parser)]
+#[command(version, about, disable_help_flag = true)]
+struct Options {
+    #[arg(short, long, default_value_t = 1000)]
+    width: usize,
+    #[arg(short, long, default_value_t = 1000)]
+    height: usize,
+
+    #[arg(short, long)]
+    denoise: bool,
+
+    #[arg(short = '?', long)]
+    help: bool,
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (width, height) = (1200, 1200);
+    let options = Options::parse();
+    if options.help {
+        Options::command().print_help()?;
+        return Ok(());
+    }
+
+    let (width, height) = (options.width, options.height);
     let aspect_ratio = width as f32 / height as f32;
 
     let (world, camera) = random_scene(aspect_ratio);
@@ -404,9 +427,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     };
 
-    denoise(&mut img);
-    let f = File::create("out-denoised.pfm")?;
-    write_image_as_pfm(f, &img)?;
+    if options.denoise {
+        denoise(&mut img);
+    }
+
+    write_image_as_pfm(File::create("out.pfm")?, &img)?;
 
     Ok(())
 }

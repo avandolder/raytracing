@@ -7,6 +7,7 @@ description = "Simple raytracer based off Ray Tracing in One Weekend"
 
 [dependencies]
 image = { version = "0.25", features = ["rayon"] }
+clap = { version = "4", features = ["derive"] }
 itertools = "0.14"
 oidn = "2.3.3"
 rand = "0.9"
