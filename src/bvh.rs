@@ -17,12 +17,17 @@ pub enum BVH {
 }
 
 impl BVH {
-    pub fn new(l: &mut Vec<Box<dyn Hittable + Sync>>, time0: f32, time1: f32) -> BVH {
+    pub fn new(
+        rng: &mut impl Rng,
+        l: &mut Vec<Box<dyn Hittable + Sync>>,
+        time0: f32,
+        time1: f32,
+    ) -> BVH {
         // Note: l is emptied by the this function!
         // l must be non-empty.
 
         // Pick a random axis and split l in half along it.
-        let axis = rand::rng().random_range(0..3);
+        let axis = rng.random_range(0..3);
         l.sort_unstable_by(|a, b| {
             let bbox_left = a.bounding_box(0., 0.).expect("No AABB in BVH constructor!");
             let bbox_right = b.bounding_box(0., 0.).expect("No AABB in BVH constructor!");
@@ -58,8 +63,8 @@ impl BVH {
             }
             _ => {
                 let rest = &mut l.split_off(l.len() / 2);
-                let left = Box::new(BVH::new(rest, time0, time1));
-                let right = Box::new(BVH::new(l, time0, time1));
+                let left = Box::new(BVH::new(rng, rest, time0, time1));
+                let right = Box::new(BVH::new(rng, l, time0, time1));
                 BVH::Double {
                     bbox: surrounding_box(
                         left.bounding_box(time0, time1).unwrap(),

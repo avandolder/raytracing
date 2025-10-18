@@ -19,7 +19,8 @@ mod vec3;
 use std::{cell::LazyCell, fs::File, io, mem, slice};
 
 use clap::{CommandFactory as _, Parser, ValueEnum};
-use rand::Rng as _;
+use rand::{Rng, SeedableRng, rngs::StdRng};
+use rand_chacha::ChaCha12Rng;
 use rayon::{
     iter::{IndexedParallelIterator as _, ParallelIterator as _},
     slice::ParallelSliceMut as _,
@@ -46,12 +47,18 @@ impl Image {
     }
 }
 
-fn color(r: &Ray, world: &dyn Hittable, depth: i32, use_ambient_light: bool) -> Vec3 {
+fn color(
+    rng: &mut impl Rng,
+    r: &Ray,
+    world: &dyn Hittable,
+    depth: i32,
+    use_ambient_light: bool,
+) -> Vec3 {
     if let Some(rec) = world.hit(r, 0.001, f32::MAX) {
         let emitted = rec.mat.emitted(rec.u, rec.v, rec.p);
-        match rec.mat.scatter(r, &rec) {
+        match rec.mat.scatter(rng, r, &rec) {
             Some((attenuation, scattered)) if depth < 50 => {
-                emitted + attenuation * color(&scattered, world, depth + 1, use_ambient_light)
+                emitted + attenuation * color(rng, &scattered, world, depth + 1, use_ambient_light)
             }
             _ => emitted,
         }
@@ -82,25 +89,26 @@ fn write_image_as_pfm(mut w: impl io::Write, image: &Image) -> io::Result<()> {
     })
 }
 
-fn cast_more_rays(scene: &Scene, image: &mut Image, prev: u32, n: u32) {
+fn cast_more_rays(config: &Config, scene: &Scene, image: &mut Image, prev: u32, n: u32) {
     let (wf, hf, nf) = (image.width as f32, image.height as f32, n as f32);
 
     image
         .data
         .par_chunks_exact_mut(3)
         .enumerate()
-        .for_each_init(rand::rng, |rng, (idx, px)| {
+        .for_each(|(idx, px)| {
+            let mut rng = config
+                .seed
+                .map_or_else(ChaCha12Rng::from_os_rng, ChaCha12Rng::seed_from_u64);
+            rng.set_stream(idx as u64);
+
             let (x, y) = (idx % image.width, idx / image.height);
             let color = (0..n)
                 .map(|_| {
                     let u = (x as f32 + rng.random::<f32>()) / wf;
                     let v = (y as f32 + rng.random::<f32>()) / hf;
-                    color(
-                        &scene.camera.get_ray(u, v),
-                        &scene.geometry,
-                        0,
-                        scene.use_ambient_light,
-                    )
+                    let ray = scene.camera.get_ray(&mut rng, u, v);
+                    color(&mut rng, &ray, &scene.geometry, 0, scene.use_ambient_light)
                 })
                 .sum::<Vec3>();
             (0..3).for_each(|i| {
@@ -114,7 +122,13 @@ fn progressive_cast(config: &Config, scene: &Scene) -> io::Result<Image> {
 
     let (mut i, mut step, mut so_far) = (0, 1, 0);
     while so_far < config.samples {
-        cast_more_rays(scene, &mut img, so_far, (so_far + step).min(config.samples));
+        cast_more_rays(
+            config,
+            scene,
+            &mut img,
+            so_far,
+            (so_far + step).min(config.samples),
+        );
 
         write_image_as_pfm(File::create(format!("out-{:02}.pfm", i))?, &img)?;
 
@@ -169,6 +183,9 @@ struct Options {
 
     #[arg(long, value_enum, default_value_t = Scenes::Random)]
     scene: Scenes,
+
+    #[arg(long)]
+    seed: Option<u64>,
 }
 
 struct Config {
@@ -176,6 +193,7 @@ struct Config {
     height: usize,
     aspect_ratio: f32,
     samples: u32,
+    seed: Option<u64>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -190,19 +208,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         height: options.height,
         aspect_ratio: options.width as f32 / options.height as f32,
         samples: options.samples,
+        seed: options.seed,
     };
 
+    let mut scene_rng = config
+        .seed
+        .map_or_else(StdRng::from_os_rng, StdRng::seed_from_u64);
+
     let scene = match options.scene {
-        Scenes::Random => scene::random_scene(&config),
-        Scenes::CornellBox => scene::cornell_box(&config),
-        Scenes::CornellFog => scene::cornell_fog(&config),
+        Scenes::Random => scene::random_scene(&config, &mut scene_rng),
+        Scenes::CornellBox => scene::cornell_box(&config, &mut scene_rng),
+        Scenes::CornellFog => scene::cornell_fog(&config, &mut scene_rng),
     };
 
     let mut img = if options.progressive {
         progressive_cast(&config, &scene)?
     } else {
         let mut img = Image::new(config.width, config.height);
-        cast_more_rays(&scene, &mut img, 0, config.samples);
+        cast_more_rays(&config, &scene, &mut img, 0, config.samples);
         img
     };
 

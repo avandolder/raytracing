@@ -1,6 +1,6 @@
 use image::GenericImageView as _;
 use itertools::iproduct;
-use rand::Rng as _;
+use rand::Rng;
 
 use crate::{
     Config,
@@ -25,9 +25,8 @@ pub struct Scene {
     pub(crate) use_ambient_light: bool,
 }
 
-pub fn random_scene(config: &Config) -> Scene {
+pub fn random_scene(config: &Config, rng: &mut impl Rng) -> Scene {
     let n = 500;
-    let mut rng = rand::rng();
     let mut world: Vec<Box<dyn Hittable + Sync>> = Vec::with_capacity(n + 1);
 
     let checker = Texture::checker(
@@ -122,7 +121,7 @@ pub fn random_scene(config: &Config) -> Scene {
     )));
 
     Scene {
-        geometry: BVH::new(&mut world, 0., 1.),
+        geometry: BVH::new(rng, &mut world, 0., 1.),
         camera: Camera::new(
             Vec3::new(13., 2., 3.),
             Vec3::new(0., 0., 0.),
@@ -138,7 +137,7 @@ pub fn random_scene(config: &Config) -> Scene {
     }
 }
 
-pub fn cornell_box(config: &Config) -> Scene {
+pub fn cornell_box(config: &Config, rng: &mut impl Rng) -> Scene {
     let red = Material::Diffuse(Texture::solid((0.65, 0.05, 0.05)));
     let white = Material::Diffuse(Texture::solid((0.73, 0.73, 0.73)));
     let green = Material::Diffuse(Texture::solid((0.12, 0.45, 0.15)));
@@ -152,6 +151,7 @@ pub fn cornell_box(config: &Config) -> Scene {
 
     Scene {
         geometry: BVH::new(
+            rng,
             &mut vec![
                 flip_normals(YZRect::new(0., 555., 0., 555., 555., red.clone())),
                 Box::new(YZRect::new(0., 555., 0., 555., 0., green.clone())),
@@ -192,7 +192,7 @@ pub fn cornell_box(config: &Config) -> Scene {
     }
 }
 
-pub fn cornell_fog(config: &Config) -> Scene {
+pub fn cornell_fog(config: &Config, rng: &mut impl Rng) -> Scene {
     let red = Material::Diffuse(Texture::solid((0.65, 0.05, 0.05)));
     let white = Material::Diffuse(Texture::solid((0.73, 0.73, 0.73)));
     let green = Material::Diffuse(Texture::solid((0.12, 0.45, 0.15)));
@@ -206,6 +206,7 @@ pub fn cornell_fog(config: &Config) -> Scene {
 
     Scene {
         geometry: BVH::new(
+            rng,
             &mut vec![
                 flip_normals(YZRect::new(0., 555., 0., 555., 555., green.clone())),
                 Box::new(YZRect::new(0., 555., 0., 555., 0., red.clone())),

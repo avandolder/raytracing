@@ -14,9 +14,8 @@ pub enum Material {
     Isotropic(Texture),
 }
 
-fn random_in_unit_sphere() -> Vec3 {
+fn random_in_unit_sphere(rng: &mut impl Rng) -> Vec3 {
     let mut p = Vec3::new(1., 1., 1.);
-    let mut rng = rand::rng();
     while p.squared_length() >= 1. {
         let v = Vec3::new(
             rng.random::<f32>(),
@@ -45,7 +44,7 @@ fn schlick(cosine: f32, ref_idx: f32) -> f32 {
 }
 
 impl Material {
-    pub fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Vec3, Ray)> {
+    pub fn scatter(&self, rng: &mut impl Rng, r_in: &Ray, rec: &HitRecord) -> Option<(Vec3, Ray)> {
         match self {
             Material::Glass(ref_idx) => {
                 let reflected = reflect(r_in.direction(), rec.normal);
@@ -66,7 +65,7 @@ impl Material {
                         |refracted| {
                             Ray::new(
                                 rec.p,
-                                (rand::rng().random::<f32>() < schlick(cosine, *ref_idx))
+                                (rng.random::<f32>() < schlick(cosine, *ref_idx))
                                     .then_some(reflected)
                                     .unwrap_or(refracted),
                                 r_in.time(),
@@ -76,7 +75,7 @@ impl Material {
                 ))
             }
             Material::Diffuse(albedo) => {
-                let target = rec.p + rec.normal + random_in_unit_sphere();
+                let target = rec.p + rec.normal + random_in_unit_sphere(rng);
                 Some((
                     albedo.value(rec.u, rec.v, rec.p),
                     Ray::new(rec.p, target - rec.p, r_in.time()),
@@ -88,14 +87,14 @@ impl Material {
                 let reflected = reflect(r_in.direction().unit_vector(), rec.normal);
                 let scattered = Ray::new(
                     rec.p,
-                    reflected + fuzz * random_in_unit_sphere(),
+                    reflected + fuzz * random_in_unit_sphere(rng),
                     r_in.time(),
                 );
                 (scattered.direction().dot(rec.normal) > 0.).then_some((*albedo, scattered))
             }
             Material::Isotropic(texture) => Some((
                 texture.value(rec.u, rec.v, rec.p),
-                Ray::new(rec.p, random_in_unit_sphere(), r_in.time()),
+                Ray::new(rec.p, random_in_unit_sphere(rng), r_in.time()),
             )),
         }
     }
