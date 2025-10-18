@@ -8,14 +8,13 @@ use crate::{
     camera::Camera,
     constant_medium::ConstantMedium,
     cornellbox::CornellBox,
-    hittable::{Hittable, flip_normals},
+    hittable::Hittable,
     material::Material,
     moving_sphere::MovingSphere,
     rectangle::{XYRect, XZRect, YZRect},
     rotate::RotateY,
     sphere::Sphere,
     texture::Texture,
-    translate::Translate,
     vec3::Vec3,
 };
 
@@ -27,17 +26,13 @@ pub struct Scene {
 
 pub fn random_scene(config: &Config, rng: &mut impl Rng) -> Scene {
     let n = 500;
-    let mut world: Vec<Box<dyn Hittable + Sync>> = Vec::with_capacity(n + 1);
+    let mut world: Vec<Hittable> = Vec::with_capacity(n + 1);
 
     let checker = Texture::checker(
         Texture::solid((0.2, 0.3, 0.1)),
         Texture::solid((0.9, 0.9, 0.9)),
     );
-    world.push(Box::new(Sphere::new(
-        Vec3::new(0., -1000., 0.),
-        1000.,
-        Material::Diffuse(checker),
-    )));
+    world.push(Sphere::new(Vec3::new(0., -1000., 0.), 1000., Material::Diffuse(checker)).into());
 
     world.extend(iproduct!(-11..11, -11..11).map(|(a, b)| {
         let center = loop {
@@ -53,7 +48,7 @@ pub fn random_scene(config: &Config, rng: &mut impl Rng) -> Scene {
 
         let choose_mat = rng.random::<f32>();
         if choose_mat < 0.25 {
-            Box::new(MovingSphere::new(
+            MovingSphere::new(
                 center,
                 center + Vec3::new(0., 0.5 * rng.random::<f32>(), 0.),
                 0.,
@@ -64,9 +59,10 @@ pub fn random_scene(config: &Config, rng: &mut impl Rng) -> Scene {
                     rng.random::<f32>() * rng.random::<f32>(),
                     rng.random::<f32>() * rng.random::<f32>(),
                 ))),
-            )) as Box<dyn Hittable + Sync>
+            )
+            .into()
         } else if choose_mat < 0.5 {
-            Box::new(ConstantMedium::new(
+            ConstantMedium::new(
                 Sphere::new(center, 0.2, Material::Diffuse(Texture::solid((1., 1., 1.)))),
                 0.01,
                 Texture::solid(Vec3::new(
@@ -74,15 +70,12 @@ pub fn random_scene(config: &Config, rng: &mut impl Rng) -> Scene {
                     rng.random::<f32>() * rng.random::<f32>(),
                     rng.random::<f32>() * rng.random::<f32>(),
                 )),
-            )) as Box<dyn Hittable + Sync>
+            )
+            .into()
         } else if choose_mat < 0.65 {
-            Box::new(Sphere::new(
-                center,
-                0.2,
-                Material::Diffuse(Texture::noise(4.)),
-            ))
+            Sphere::new(center, 0.2, Material::Diffuse(Texture::noise(4.))).into()
         } else if choose_mat < 0.95 {
-            Box::new(Sphere::new(
+            Sphere::new(
                 center,
                 0.2,
                 Material::Metal(
@@ -93,32 +86,35 @@ pub fn random_scene(config: &Config, rng: &mut impl Rng) -> Scene {
                     ),
                     0.5 * rng.random::<f32>(),
                 ),
-            ))
+            )
+            .into()
         } else {
-            Box::new(Sphere::new(center, 0.2, Material::Glass(1.5)))
+            Sphere::new(center, 0.2, Material::Glass(1.5)).into()
         }
     }));
 
-    world.push(Box::new(Sphere::new(
-        Vec3::new(0., 1., 0.),
-        1.,
-        Material::Glass(1.5),
-    )));
+    world.push(Sphere::new(Vec3::new(0., 1., 0.), 1., Material::Glass(1.5)).into());
 
     let img = image::open("earthmap.jpg").unwrap();
     let data = img.to_rgb8().into_raw();
     let (w, h) = img.dimensions();
-    world.push(Box::new(Sphere::new(
-        Vec3::new(4., 1., 0.),
-        1.,
-        Material::Diffuse(Texture::Image { data, w, h }),
-    )));
+    world.push(
+        Sphere::new(
+            Vec3::new(4., 1., 0.),
+            1.,
+            Material::Diffuse(Texture::Image { data, w, h }),
+        )
+        .into(),
+    );
 
-    world.push(Box::new(Sphere::new(
-        Vec3::new(-4., 1., 0.),
-        1.,
-        Material::Metal(Vec3::new(0.7, 0.6, 0.5), 0.),
-    )));
+    world.push(
+        Sphere::new(
+            Vec3::new(-4., 1., 0.),
+            1.,
+            Material::Metal(Vec3::new(0.7, 0.6, 0.5), 0.),
+        )
+        .into(),
+    );
 
     Scene {
         geometry: BVH::new(rng, &mut world, 0., 1.),
@@ -153,26 +149,26 @@ pub fn cornell_box(config: &Config, rng: &mut impl Rng) -> Scene {
         geometry: BVH::new(
             rng,
             &mut vec![
-                flip_normals(YZRect::new(0., 555., 0., 555., 555., red.clone())),
-                Box::new(YZRect::new(0., 555., 0., 555., 0., green.clone())),
-                Box::new(XZRect::new(213., 343., 227., 332., 554., light.clone())),
-                flip_normals(XZRect::new(0., 555., 0., 555., 555., white.clone())),
-                Box::new(XZRect::new(0., 555., 0., 555., 0., white.clone())),
-                flip_normals(XYRect::new(0., 555., 0., 555., 555., white.clone())),
-                Box::new(Translate::new(
+                Hittable::flip_normals(YZRect::new(0., 555., 0., 555., 555., red.clone())),
+                YZRect::new(0., 555., 0., 555., 0., green.clone()).into(),
+                XZRect::new(213., 343., 227., 332., 554., light.clone()).into(),
+                Hittable::flip_normals(XZRect::new(0., 555., 0., 555., 555., white.clone())),
+                XZRect::new(0., 555., 0., 555., 0., white.clone()).into(),
+                Hittable::flip_normals(XYRect::new(0., 555., 0., 555., 555., white.clone())),
+                Hittable::translate(
                     RotateY::new(
                         CornellBox::new((0, 0, 0), (165, 165, 165), white.clone()),
                         -18.,
                     ),
                     (130, 0, 65),
-                )),
-                Box::new(Translate::new(
+                ),
+                Hittable::translate(
                     RotateY::new(
                         CornellBox::new((0, 0, 0), (165, 330, 165), white.clone()),
                         15.,
                     ),
                     (265, 0, 295),
-                )),
+                ),
             ],
             0.,
             1.,
@@ -208,14 +204,14 @@ pub fn cornell_fog(config: &Config, rng: &mut impl Rng) -> Scene {
         geometry: BVH::new(
             rng,
             &mut vec![
-                flip_normals(YZRect::new(0., 555., 0., 555., 555., green.clone())),
-                Box::new(YZRect::new(0., 555., 0., 555., 0., red.clone())),
-                Box::new(XZRect::new(113., 443., 127., 432., 554., light.clone())),
-                flip_normals(XZRect::new(0., 555., 0., 555., 555., white.clone())),
-                Box::new(XZRect::new(0., 555., 0., 555., 0., white.clone())),
-                flip_normals(XYRect::new(0., 555., 0., 555., 555., white.clone())),
-                Box::new(ConstantMedium::new(
-                    Translate::new(
+                Hittable::flip_normals(YZRect::new(0., 555., 0., 555., 555., green.clone())),
+                YZRect::new(0., 555., 0., 555., 0., red.clone()).into(),
+                XZRect::new(113., 443., 127., 432., 554., light.clone()).into(),
+                Hittable::flip_normals(XZRect::new(0., 555., 0., 555., 555., white.clone())),
+                XZRect::new(0., 555., 0., 555., 0., white.clone()).into(),
+                Hittable::flip_normals(XYRect::new(0., 555., 0., 555., 555., white.clone())),
+                ConstantMedium::new(
+                    Hittable::translate(
                         RotateY::new(
                             CornellBox::new((0, 0, 0), (165, 165, 165), white.clone()),
                             -18.,
@@ -224,9 +220,10 @@ pub fn cornell_fog(config: &Config, rng: &mut impl Rng) -> Scene {
                     ),
                     0.01,
                     Texture::solid((1., 1., 1.)),
-                )),
-                Box::new(ConstantMedium::new(
-                    Translate::new(
+                )
+                .into(),
+                ConstantMedium::new(
+                    Hittable::translate(
                         RotateY::new(
                             CornellBox::new((0, 0, 0), (165, 330, 165), white.clone()),
                             15.,
@@ -235,7 +232,8 @@ pub fn cornell_fog(config: &Config, rng: &mut impl Rng) -> Scene {
                     ),
                     0.01,
                     Texture::solid((0., 0., 0.)),
-                )),
+                )
+                .into(),
             ],
             0.,
             1.,

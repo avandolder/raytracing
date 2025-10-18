@@ -6,23 +6,18 @@ use crate::ray::Ray;
 
 pub enum BVH {
     Single {
-        left: Box<dyn Hittable + Sync>,
+        left: Box<Hittable>,
         bbox: AABB,
     },
     Double {
-        left: Box<dyn Hittable + Sync>,
-        right: Box<dyn Hittable + Sync>,
+        left: Box<Hittable>,
+        right: Box<Hittable>,
         bbox: AABB,
     },
 }
 
 impl BVH {
-    pub fn new(
-        rng: &mut impl Rng,
-        l: &mut Vec<Box<dyn Hittable + Sync>>,
-        time0: f32,
-        time1: f32,
-    ) -> BVH {
+    pub fn new(rng: &mut impl Rng, l: &mut Vec<Hittable>, time0: f32, time1: f32) -> BVH {
         // Note: l is emptied by the this function!
         // l must be non-empty.
 
@@ -46,7 +41,7 @@ impl BVH {
                 let left = l.pop().unwrap();
                 BVH::Single {
                     bbox: left.bounding_box(time0, time1).unwrap(),
-                    left,
+                    left: left.into(),
                 }
             }
             2 => {
@@ -57,29 +52,27 @@ impl BVH {
                         left.bounding_box(time0, time1).unwrap(),
                         right.bounding_box(time0, time1).unwrap(),
                     ),
-                    left,
-                    right,
+                    left: left.into(),
+                    right: right.into(),
                 }
             }
             _ => {
                 let rest = &mut l.split_off(l.len() / 2);
-                let left = Box::new(BVH::new(rng, rest, time0, time1));
-                let right = Box::new(BVH::new(rng, l, time0, time1));
+                let left = BVH::new(rng, rest, time0, time1);
+                let right = BVH::new(rng, l, time0, time1);
                 BVH::Double {
                     bbox: surrounding_box(
                         left.bounding_box(time0, time1).unwrap(),
                         right.bounding_box(time0, time1).unwrap(),
                     ),
-                    left,
-                    right,
+                    left: Box::new(left.into()),
+                    right: Box::new(right.into()),
                 }
             }
         }
     }
-}
 
-impl Hittable for BVH {
-    fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'_>> {
+    pub fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'_>> {
         match self {
             BVH::Single { left, bbox } => {
                 if bbox.hit(r, t_min, t_max) {
@@ -112,7 +105,7 @@ impl Hittable for BVH {
         }
     }
 
-    fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<AABB> {
+    pub fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<AABB> {
         match self {
             BVH::Single { bbox, .. } | BVH::Double { bbox, .. } => Some(bbox.clone()),
         }

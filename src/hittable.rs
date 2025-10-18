@@ -1,6 +1,13 @@
-use crate::aabb::{AABB, surrounding_box};
+use crate::aabb::AABB;
+use crate::bvh::BVH;
+use crate::constant_medium::ConstantMedium;
+use crate::cornellbox::CornellBox;
 use crate::material::Material;
+use crate::moving_sphere::MovingSphere;
 use crate::ray::Ray;
+use crate::rectangle::{XYRect, XZRect, YZRect};
+use crate::rotate::RotateY;
+use crate::sphere::Sphere;
 use crate::vec3::Vec3;
 
 pub struct HitRecord<'a> {
@@ -12,42 +19,105 @@ pub struct HitRecord<'a> {
     pub v: f32,
 }
 
-pub trait Hittable {
-    fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>>;
-    fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB>;
+pub enum Hittable {
+    Translate(Box<Hittable>, Vec3),
+    FlipNormals(Box<Hittable>),
+
+    Bvh(BVH),
+    Sphere(Sphere),
+    MovingSphere(MovingSphere),
+    CornellBox(CornellBox),
+    ConstantMedium(ConstantMedium),
+    RotateY(RotateY),
+    XYRect(XYRect),
+    XZRect(XZRect),
+    YZRect(YZRect),
 }
 
-impl Hittable for Vec<Box<dyn Hittable + Sync>> {
-    fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
-        self.iter()
-            .filter_map(|item| item.hit(r, t_min, t_max).filter(|r| !r.t.is_nan()))
-            .min_by(|r1, r2| r1.t.partial_cmp(&r2.t).unwrap())
+impl Hittable {
+    pub fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
+        use Hittable::*;
+        match self {
+            Translate(hittable, offset) => {
+                let moved_r = Ray::new(r.origin() - *offset, r.direction(), r.time());
+                hittable.hit(&moved_r, t_min, t_max).map(|rec| HitRecord {
+                    p: rec.p + *offset,
+                    ..rec
+                })
+            }
+            FlipNormals(hittable) => hittable.hit(r, t_min, t_max).map(|rec| HitRecord {
+                normal: -rec.normal,
+                ..rec
+            }),
+
+            Bvh(bvh) => bvh.hit(r, t_min, t_max),
+            Sphere(sphere) => sphere.hit(r, t_min, t_max),
+            MovingSphere(moving_sphere) => moving_sphere.hit(r, t_min, t_max),
+            CornellBox(cornell_box) => cornell_box.hit(r, t_min, t_max),
+            ConstantMedium(constant_medium) => constant_medium.hit(r, t_min, t_max),
+            RotateY(rotate_y) => rotate_y.hit(r, t_min, t_max),
+            XYRect(xyrect) => xyrect.hit(r, t_min, t_max),
+            XZRect(xzrect) => xzrect.hit(r, t_min, t_max),
+            YZRect(yzrect) => yzrect.hit(r, t_min, t_max),
+        }
     }
 
-    fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB> {
-        let init = self.first()?.bounding_box(t0, t1)?;
-        self.iter().try_fold(init, |box1, item| {
-            item.bounding_box(t0, t1)
-                .map(|box2| surrounding_box(box1, box2))
-        })
+    pub fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB> {
+        use Hittable::*;
+        match self {
+            Translate(hittable, offset) => hittable
+                .bounding_box(t0, t1)
+                .map(|bbox| AABB::new(bbox.min + *offset, bbox.max + *offset)),
+            FlipNormals(hittable) => hittable.bounding_box(t0, t1),
+
+            Bvh(bvh) => bvh.bounding_box(t0, t1),
+            Sphere(sphere) => sphere.bounding_box(t0, t1),
+            MovingSphere(moving_sphere) => moving_sphere.bounding_box(t0, t1),
+            CornellBox(cornell_box) => cornell_box.bounding_box(t0, t1),
+            ConstantMedium(constant_medium) => constant_medium.bounding_box(t0, t1),
+            RotateY(rotate_y) => rotate_y.bounding_box(t0, t1),
+            XYRect(xyrect) => xyrect.bounding_box(t0, t1),
+            XZRect(xzrect) => xzrect.bounding_box(t0, t1),
+            YZRect(yzrect) => yzrect.bounding_box(t0, t1),
+        }
+    }
+
+    pub fn translate(hittable: impl Into<Hittable>, offset: impl Into<Vec3>) -> Hittable {
+        Hittable::Translate(Box::new(hittable.into()), offset.into())
+    }
+
+    pub fn flip_normals(hittable: impl Into<Hittable>) -> Hittable {
+        Hittable::FlipNormals(Box::new(hittable.into()))
     }
 }
 
-pub struct FlipNormals(Box<dyn Hittable + Sync>);
+pub fn hit_group<'a>(
+    hittables: &'a [Hittable],
+    r: &Ray,
+    t_min: f32,
+    t_max: f32,
+) -> Option<HitRecord<'a>> {
+    hittables
+        .iter()
+        .filter_map(|item| item.hit(r, t_min, t_max).filter(|r| !r.t.is_nan()))
+        .min_by(|r1, r2| r1.t.partial_cmp(&r2.t).unwrap())
+}
 
-impl Hittable for FlipNormals {
-    fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
-        self.0.hit(r, t_min, t_max).map(|rec| HitRecord {
-            normal: -rec.normal,
-            ..rec
-        })
-    }
-
-    fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB> {
-        self.0.bounding_box(t0, t1)
+impl From<BVH> for Hittable {
+    fn from(value: BVH) -> Self {
+        Hittable::Bvh(value)
     }
 }
 
-pub fn flip_normals<T: 'static + Hittable + Sync>(hittable: T) -> Box<FlipNormals> {
-    Box::new(FlipNormals(Box::new(hittable)))
+macro_rules! gen_from {
+    ($t:ident $($ts:ident)*) => {
+        gen_from!($($ts)*);
+        impl From<$t> for Hittable {
+            fn from(value: $t) -> Self {
+                Hittable::$t(value)
+            }
+        }
+    };
+    () => {}
 }
+gen_from!(Sphere MovingSphere CornellBox ConstantMedium RotateY XYRect XZRect YZRect);

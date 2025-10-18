@@ -4,17 +4,18 @@ use crate::ray::Ray;
 use crate::vec3::Vec3;
 
 pub struct RotateY {
-    pub hittable: Box<dyn Hittable + Sync>,
+    pub hittable: Box<Hittable>,
     pub sin_theta: f32,
     pub cos_theta: f32,
     pub bbox: Option<AABB>,
 }
 
 impl RotateY {
-    pub fn new(hittable: impl 'static + Hittable + Sync, angle: f32) -> RotateY {
+    pub fn new(hittable: impl Into<Hittable>, angle: f32) -> RotateY {
         let radians = (std::f32::consts::PI / 180.) * angle;
         let sin_theta = radians.sin();
         let cos_theta = radians.cos();
+        let hittable = hittable.into();
         let bbox = hittable.bounding_box(0., 1.).map(|bbox| {
             let mut min = Vec3::new(f32::MAX, f32::MAX, f32::MAX);
             let mut max = Vec3::new(f32::MIN, f32::MIN, f32::MIN);
@@ -44,10 +45,8 @@ impl RotateY {
             bbox,
         }
     }
-}
 
-impl Hittable for RotateY {
-    fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
+    pub fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
         let mut origin = r.origin();
         let mut direction = r.direction();
         origin[0] = self.cos_theta * r.origin()[0] - self.sin_theta * r.origin()[2];
@@ -67,7 +66,7 @@ impl Hittable for RotateY {
         })
     }
 
-    fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<AABB> {
+    pub fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<AABB> {
         self.bbox.clone()
     }
 }

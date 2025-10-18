@@ -1,5 +1,5 @@
 use crate::aabb::{AABB, surrounding_box};
-use crate::hittable::{HitRecord, Hittable};
+use crate::hittable::HitRecord;
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::sphere::get_sphere_uv;
@@ -38,10 +38,8 @@ impl MovingSphere {
         self.center0
             + ((time - self.time0) / (self.time1 - self.time0)) * (self.center1 - self.center0)
     }
-}
 
-impl Hittable for MovingSphere {
-    fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
+    pub fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
         let oc = r.origin() - self.center(r.time());
         let a = r.direction().squared_length();
         let b = oc.dot(r.direction());
@@ -81,7 +79,7 @@ impl Hittable for MovingSphere {
         None
     }
 
-    fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB> {
+    pub fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB> {
         let box0 = AABB::new(
             self.center(t0) - Vec3::new(self.radius, self.radius, self.radius),
             self.center(t0) + Vec3::new(self.radius, self.radius, self.radius),
