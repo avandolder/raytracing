@@ -59,25 +59,21 @@ impl Material {
                     (rec.normal, 1. / *ref_idx, cosine)
                 };
 
-                if let Some(refracted) = refract(r_in.direction(), outward_normal, ni_over_nt) {
-                    let reflect_prob = schlick(cosine, *ref_idx);
-                    if rand::rng().random::<f32>() < reflect_prob {
-                        Some((
-                            Vec3::new(1., 1., 1.),
-                            Ray::new(rec.p, reflected, r_in.time()),
-                        ))
-                    } else {
-                        Some((
-                            Vec3::new(1., 1., 1.),
-                            Ray::new(rec.p, refracted, r_in.time()),
-                        ))
-                    }
-                } else {
-                    Some((
-                        Vec3::new(1., 1., 1.),
+                Some((
+                    Vec3::new(1., 1., 1.),
+                    refract(r_in.direction(), outward_normal, ni_over_nt).map_or(
                         Ray::new(rec.p, reflected, r_in.time()),
-                    ))
-                }
+                        |refracted| {
+                            Ray::new(
+                                rec.p,
+                                (rand::rng().random::<f32>() < schlick(cosine, *ref_idx))
+                                    .then_some(reflected)
+                                    .unwrap_or(refracted),
+                                r_in.time(),
+                            )
+                        },
+                    ),
+                ))
             }
             Material::Diffuse(albedo) => {
                 let target = rec.p + rec.normal + random_in_unit_sphere();
@@ -95,11 +91,7 @@ impl Material {
                     reflected + fuzz * random_in_unit_sphere(),
                     r_in.time(),
                 );
-                if scattered.direction().dot(rec.normal) > 0. {
-                    Some((*albedo, scattered))
-                } else {
-                    None
-                }
+                (scattered.direction().dot(rec.normal) > 0.).then_some((*albedo, scattered))
             }
             Material::Isotropic(texture) => Some((
                 texture.value(rec.u, rec.v, rec.p),
