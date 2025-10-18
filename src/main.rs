@@ -126,11 +126,11 @@ fn progressive_cast(config: &Config, scene: &Scene) -> io::Result<Image> {
     Ok(img)
 }
 
-thread_local! {
-    static OIDN_DEVICE: LazyCell<oidn::Device> = LazyCell::new(oidn::Device::new);
-}
-
 fn denoise(image: &mut Image) {
+    thread_local! {
+        static OIDN_DEVICE: LazyCell<oidn::Device> = LazyCell::new(oidn::Device::new);
+    }
+
     OIDN_DEVICE.with(|device| {
         oidn::RayTracing::new(device)
             .image_dimensions(image.width, image.height)
