@@ -1,3 +1,5 @@
+use rand_chacha::ChaCha12Rng;
+
 use crate::aabb::AABB;
 use crate::bvh::BVH;
 use crate::constant_medium::ConstantMedium;
@@ -35,27 +37,35 @@ pub enum Hittable {
 }
 
 impl Hittable {
-    pub fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
+    pub fn hit<'a>(
+        &'a self,
+        rng: &mut ChaCha12Rng,
+        r: &Ray,
+        t_min: f32,
+        t_max: f32,
+    ) -> Option<HitRecord<'a>> {
         use Hittable::*;
         match self {
             Translate(hittable, offset) => {
                 let moved_r = Ray::new(r.origin() - *offset, r.direction(), r.time());
-                hittable.hit(&moved_r, t_min, t_max).map(|rec| HitRecord {
-                    p: rec.p + *offset,
-                    ..rec
-                })
+                hittable
+                    .hit(rng, &moved_r, t_min, t_max)
+                    .map(|rec| HitRecord {
+                        p: rec.p + *offset,
+                        ..rec
+                    })
             }
-            FlipNormals(hittable) => hittable.hit(r, t_min, t_max).map(|rec| HitRecord {
+            FlipNormals(hittable) => hittable.hit(rng, r, t_min, t_max).map(|rec| HitRecord {
                 normal: -rec.normal,
                 ..rec
             }),
 
-            Bvh(bvh) => bvh.hit(r, t_min, t_max),
+            Bvh(bvh) => bvh.hit(rng, r, t_min, t_max),
             Sphere(sphere) => sphere.hit(r, t_min, t_max),
             MovingSphere(moving_sphere) => moving_sphere.hit(r, t_min, t_max),
-            CornellBox(cornell_box) => cornell_box.hit(r, t_min, t_max),
-            ConstantMedium(constant_medium) => constant_medium.hit(r, t_min, t_max),
-            RotateY(rotate_y) => rotate_y.hit(r, t_min, t_max),
+            CornellBox(cornell_box) => cornell_box.hit(rng, r, t_min, t_max),
+            ConstantMedium(constant_medium) => constant_medium.hit(rng, r, t_min, t_max),
+            RotateY(rotate_y) => rotate_y.hit(rng, r, t_min, t_max),
             XYRect(xyrect) => xyrect.hit(r, t_min, t_max),
             XZRect(xzrect) => xzrect.hit(r, t_min, t_max),
             YZRect(yzrect) => yzrect.hit(r, t_min, t_max),
@@ -93,13 +103,14 @@ impl Hittable {
 
 pub fn hit_group<'a>(
     hittables: &'a [Hittable],
+    rng: &mut ChaCha12Rng,
     r: &Ray,
     t_min: f32,
     t_max: f32,
 ) -> Option<HitRecord<'a>> {
     hittables
         .iter()
-        .filter_map(|item| item.hit(r, t_min, t_max).filter(|r| !r.t.is_nan()))
+        .filter_map(|item| item.hit(rng, r, t_min, t_max).filter(|r| !r.t.is_nan()))
         .min_by(|r1, r2| r1.t.partial_cmp(&r2.t).unwrap())
 }
 

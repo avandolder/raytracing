@@ -1,3 +1,5 @@
+use rand_chacha::ChaCha12Rng;
+
 use crate::aabb::AABB;
 use crate::hittable::{HitRecord, Hittable};
 use crate::ray::Ray;
@@ -46,7 +48,13 @@ impl RotateY {
         }
     }
 
-    pub fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
+    pub fn hit<'a>(
+        &'a self,
+        rng: &mut ChaCha12Rng,
+        r: &Ray,
+        t_min: f32,
+        t_max: f32,
+    ) -> Option<HitRecord<'a>> {
         let mut origin = r.origin();
         let mut direction = r.direction();
         origin[0] = self.cos_theta * r.origin()[0] - self.sin_theta * r.origin()[2];
@@ -55,7 +63,7 @@ impl RotateY {
         direction[2] = self.sin_theta * r.direction()[0] + self.cos_theta * r.direction()[2];
 
         let rotated_r = Ray::new(origin, direction, r.time());
-        self.hittable.hit(&rotated_r, t_min, t_max).map(|rec| {
+        self.hittable.hit(rng, &rotated_r, t_min, t_max).map(|rec| {
             let mut p = rec.p;
             let mut normal = rec.normal;
             p[0] = self.cos_theta * rec.p[0] + self.sin_theta * rec.p[2];

@@ -46,8 +46,8 @@ impl Image {
     }
 }
 
-fn color(rng: &mut impl Rng, r: &Ray, world: &BVH, depth: i32, use_ambient_light: bool) -> Vec3 {
-    if let Some(rec) = world.hit(r, 0.001, f32::MAX) {
+fn color(rng: &mut ChaCha12Rng, r: &Ray, world: &BVH, depth: i32, use_ambient_light: bool) -> Vec3 {
+    if let Some(rec) = world.hit(rng, r, 0.001, f32::MAX) {
         let emitted = rec.mat.emitted(rec.u, rec.v, rec.p);
         match rec.mat.scatter(rng, r, &rec) {
             Some((attenuation, scattered)) if depth < 50 => {

@@ -1,4 +1,5 @@
-use rand::{Rng, rng};
+use rand::Rng;
+use rand_chacha::ChaCha12Rng;
 
 use crate::{
     aabb::AABB,
@@ -24,9 +25,15 @@ impl ConstantMedium {
         }
     }
 
-    pub fn hit<'a>(&'a self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'a>> {
-        let mut rec1 = self.boundary.hit(r, f32::NEG_INFINITY, f32::INFINITY)?;
-        let mut rec2 = self.boundary.hit(r, rec1.t + 0.0001, f32::INFINITY)?;
+    pub fn hit<'a>(
+        &'a self,
+        rng: &mut ChaCha12Rng,
+        r: &Ray,
+        t_min: f32,
+        t_max: f32,
+    ) -> Option<HitRecord<'a>> {
+        let mut rec1 = self.boundary.hit(rng, r, f32::NEG_INFINITY, f32::INFINITY)?;
+        let mut rec2 = self.boundary.hit(rng, r, rec1.t + 0.0001, f32::INFINITY)?;
 
         rec1.t = rec1.t.max(t_min);
         rec2.t = rec2.t.min(t_max);
@@ -38,7 +45,7 @@ impl ConstantMedium {
 
         let ray_length = r.direction().length();
         let dist_inside_boundary = (rec2.t - rec1.t) * ray_length;
-        let hit_distance = self.neg_inv_density * rng().random::<f32>().ln();
+        let hit_distance = self.neg_inv_density * rng.random::<f32>().ln();
         if hit_distance > dist_inside_boundary {
             return None;
         }

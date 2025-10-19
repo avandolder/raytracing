@@ -1,4 +1,5 @@
 use rand::prelude::*;
+use rand_chacha::ChaCha12Rng;
 
 use crate::aabb::{AABB, surrounding_box};
 use crate::hittable::{HitRecord, Hittable};
@@ -72,15 +73,15 @@ impl BVH {
         }
     }
 
-    pub fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'_>> {
+    pub fn hit(&self, rng: &mut ChaCha12Rng, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'_>> {
         match self {
             BVH::Single { left, bbox } => bbox
                 .hit(r, t_min, t_max)
-                .then(|| left.hit(r, t_min, t_max))?,
+                .then(|| left.hit(rng, r, t_min, t_max))?,
             BVH::Double { left, right, bbox } => {
                 if bbox.hit(r, t_min, t_max) {
-                    let left_hit = left.hit(r, t_min, t_max);
-                    let right_hit = right.hit(r, t_min, t_max);
+                    let left_hit = left.hit(rng, r, t_min, t_max);
+                    let right_hit = right.hit(rng, r, t_min, t_max);
 
                     match (left_hit, right_hit) {
                         (Some(left_rec), Some(right_rec)) => {
