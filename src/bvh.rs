@@ -74,13 +74,9 @@ impl BVH {
 
     pub fn hit(&self, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'_>> {
         match self {
-            BVH::Single { left, bbox } => {
-                if bbox.hit(r, t_min, t_max) {
-                    left.hit(r, t_min, t_max)
-                } else {
-                    None
-                }
-            }
+            BVH::Single { left, bbox } => bbox
+                .hit(r, t_min, t_max)
+                .then(|| left.hit(r, t_min, t_max))?,
             BVH::Double { left, right, bbox } => {
                 if bbox.hit(r, t_min, t_max) {
                     let left_hit = left.hit(r, t_min, t_max);

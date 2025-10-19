@@ -27,36 +27,37 @@ impl Sphere {
         let c = oc.dot(oc) - self.radius * self.radius;
 
         let discriminant = b * b - a * c;
-        if discriminant > 0. {
-            let t = (-b - discriminant.sqrt()) / a;
-            if t < t_max && t > t_min {
-                let p = r.point_at_parameter(t);
-                let (u, v) = get_sphere_uv((p - self.center) / self.radius);
-                return Some(HitRecord {
-                    t,
-                    p,
-                    normal: (p - self.center) / self.radius,
-                    mat: &self.mat,
-                    u,
-                    v,
-                });
-            }
-
-            let t = (-b + discriminant.sqrt()) / a;
-            if t < t_max && t > t_min {
-                let p = r.point_at_parameter(t);
-                let (u, v) = get_sphere_uv((p - self.center) / self.radius);
-                return Some(HitRecord {
-                    t,
-                    p,
-                    normal: (p - self.center) / self.radius,
-                    mat: &self.mat,
-                    u,
-                    v,
-                });
-            }
+        if discriminant <= 0. {
+            return None;
         }
 
+        let t = (-b - discriminant.sqrt()) / a;
+        if t < t_max && t > t_min {
+            let p = r.point_at_parameter(t);
+            let (u, v) = get_sphere_uv((p - self.center) / self.radius);
+            return Some(HitRecord {
+                t,
+                p,
+                normal: (p - self.center) / self.radius,
+                mat: &self.mat,
+                u,
+                v,
+            });
+        }
+
+        let t = (-b + discriminant.sqrt()) / a;
+        if t < t_max && t > t_min {
+            let p = r.point_at_parameter(t);
+            let (u, v) = get_sphere_uv((p - self.center) / self.radius);
+            return Some(HitRecord {
+                t,
+                p,
+                normal: (p - self.center) / self.radius,
+                mat: &self.mat,
+                u,
+                v,
+            });
+        }
         None
     }
 
