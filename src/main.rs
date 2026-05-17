@@ -74,12 +74,16 @@ fn write_image_as_pfm(mut w: impl io::Write, image: &Image) -> io::Result<()> {
     #[cfg(target_endian = "big")]
     writeln!(w, "1")?;
 
-    w.write_all(unsafe {
-        slice::from_raw_parts(
-            image.data.as_ptr() as *const u8,
-            mem::size_of_val(image.data.as_slice()),
-        )
-    })
+    let image_as_bytes: &[u8] =
+        // SAFETY: As image.data is a Vec<f32>, we can always reinterpret its values as a slice of
+        // u8s. The potential issue in writing it out is endianness, which is handled above.
+        unsafe {
+            slice::from_raw_parts(
+                image.data.as_ptr() as *const u8,
+                mem::size_of_val(image.data.as_slice()),
+            )
+        };
+    w.write_all(image_as_bytes)
 }
 
 fn cast_more_rays(config: &Config, scene: &Scene, image: &mut Image, prev: u32, n: u32) {
