@@ -87,7 +87,7 @@ fn cast_more_rays(config: &Config, scene: &Scene, image: &mut Image, prev: u32, 
 
     image
         .data
-        .par_chunks_exact_mut(3)
+        .par_chunks_exact_mut(COLOR_CHANNELS)
         .enumerate()
         .for_each(|(idx, px)| {
             let mut rng = config
