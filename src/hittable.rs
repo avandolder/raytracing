@@ -1,7 +1,7 @@
 use rand_chacha::ChaCha12Rng;
 
-use crate::aabb::AABB;
-use crate::bvh::BVH;
+use crate::aabb::Aabb;
+use crate::bvh::Bvh;
 use crate::constant_medium::ConstantMedium;
 use crate::cornellbox::CornellBox;
 use crate::material::Material;
@@ -25,7 +25,7 @@ pub enum Hittable {
     Translate(Box<Hittable>, Vec3),
     FlipNormals(Box<Hittable>),
 
-    Bvh(BVH),
+    Bvh(Bvh),
     Sphere(Sphere),
     MovingSphere(MovingSphere),
     CornellBox(CornellBox),
@@ -72,12 +72,12 @@ impl Hittable {
         }
     }
 
-    pub fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB> {
+    pub fn bounding_box(&self, t0: f32, t1: f32) -> Option<Aabb> {
         use Hittable::*;
         match self {
             Translate(hittable, offset) => hittable
                 .bounding_box(t0, t1)
-                .map(|bbox| AABB::new(bbox.min + *offset, bbox.max + *offset)),
+                .map(|bbox| Aabb::new(bbox.min + *offset, bbox.max + *offset)),
             FlipNormals(hittable) => hittable.bounding_box(t0, t1),
 
             Bvh(bvh) => bvh.bounding_box(t0, t1),
@@ -114,8 +114,8 @@ pub fn hit_group<'a>(
         .min_by(|r1, r2| r1.t.partial_cmp(&r2.t).unwrap())
 }
 
-impl From<BVH> for Hittable {
-    fn from(value: BVH) -> Self {
+impl From<Bvh> for Hittable {
+    fn from(value: Bvh) -> Self {
         Hittable::Bvh(value)
     }
 }

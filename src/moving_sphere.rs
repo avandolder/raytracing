@@ -1,4 +1,4 @@
-use crate::aabb::{AABB, surrounding_box};
+use crate::aabb::{Aabb, surrounding_box};
 use crate::hittable::HitRecord;
 use crate::material::Material;
 use crate::ray::Ray;
@@ -79,12 +79,12 @@ impl MovingSphere {
         None
     }
 
-    pub fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB> {
-        let box0 = AABB::new(
+    pub fn bounding_box(&self, t0: f32, t1: f32) -> Option<Aabb> {
+        let box0 = Aabb::new(
             self.center(t0) - Vec3::new(self.radius, self.radius, self.radius),
             self.center(t0) + Vec3::new(self.radius, self.radius, self.radius),
         );
-        let box1 = AABB::new(
+        let box1 = Aabb::new(
             self.center(t1) - Vec3::new(self.radius, self.radius, self.radius),
             self.center(t1) + Vec3::new(self.radius, self.radius, self.radius),
         );

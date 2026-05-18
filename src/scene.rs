@@ -4,7 +4,7 @@ use rand::Rng;
 
 use crate::{
     Config,
-    bvh::BVH,
+    bvh::Bvh,
     camera::Camera,
     constant_medium::ConstantMedium,
     cornellbox::CornellBox,
@@ -19,7 +19,7 @@ use crate::{
 };
 
 pub struct Scene {
-    pub(crate) geometry: BVH,
+    pub(crate) geometry: Bvh,
     pub(crate) camera: Camera,
     pub(crate) use_ambient_light: bool,
 }
@@ -117,7 +117,7 @@ pub fn random_scene(config: &Config, rng: &mut impl Rng) -> Scene {
     );
 
     Scene {
-        geometry: BVH::new(rng, &mut world, 0., 1.),
+        geometry: Bvh::new(rng, &mut world, 0., 1.),
         camera: Camera::new(
             Vec3::new(13., 2., 3.),
             Vec3::new(0., 0., 0.),
@@ -146,7 +146,7 @@ pub fn cornell_box(config: &Config, rng: &mut impl Rng) -> Scene {
     let vfov = 40.;
 
     Scene {
-        geometry: BVH::new(
+        geometry: Bvh::new(
             rng,
             &mut vec![
                 Hittable::flip_normals(YZRect::new(0., 555., 0., 555., 555., red.clone())),
@@ -201,7 +201,7 @@ pub fn cornell_fog(config: &Config, rng: &mut impl Rng) -> Scene {
     let vfov = 40.;
 
     Scene {
-        geometry: BVH::new(
+        geometry: Bvh::new(
             rng,
             &mut vec![
                 Hittable::flip_normals(YZRect::new(0., 555., 0., 555., 555., green.clone())),

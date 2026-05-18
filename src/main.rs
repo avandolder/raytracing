@@ -25,7 +25,7 @@ use rayon::{
     slice::ParallelSliceMut as _,
 };
 
-use crate::{bvh::BVH, ray::Ray, scene::Scene, vec3::Vec3};
+use crate::{bvh::Bvh, ray::Ray, scene::Scene, vec3::Vec3};
 
 const COLOR_CHANNELS: usize = 3;
 
@@ -46,7 +46,7 @@ impl Image {
     }
 }
 
-fn color(rng: &mut ChaCha12Rng, r: &Ray, world: &BVH, depth: i32, use_ambient_light: bool) -> Vec3 {
+fn color(rng: &mut ChaCha12Rng, r: &Ray, world: &Bvh, depth: i32, use_ambient_light: bool) -> Vec3 {
     if let Some(rec) = world.hit(rng, r, 0.001, f32::MAX) {
         let emitted = rec.mat.emitted(rec.u, rec.v, rec.p);
         match rec.mat.scatter(rng, r, &rec) {

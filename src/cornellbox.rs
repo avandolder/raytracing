@@ -1,6 +1,6 @@
 use rand_chacha::ChaCha12Rng;
 
-use crate::aabb::AABB;
+use crate::aabb::Aabb;
 use crate::hittable::{HitRecord, Hittable, hit_group};
 use crate::material::Material;
 use crate::ray::Ray;
@@ -76,7 +76,7 @@ impl CornellBox {
         hit_group(&self.sides, rng, r, t0, t1)
     }
 
-    pub fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<AABB> {
-        Some(AABB::new(self.pmin, self.pmax))
+    pub fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<Aabb> {
+        Some(Aabb::new(self.pmin, self.pmax))
     }
 }

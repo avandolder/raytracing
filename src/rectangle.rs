@@ -1,4 +1,4 @@
-use crate::aabb::AABB;
+use crate::aabb::Aabb;
 use crate::hittable::HitRecord;
 use crate::material::Material;
 use crate::ray::Ray;
@@ -25,8 +25,8 @@ impl XYRect {
         }
     }
 
-    pub fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<AABB> {
-        Some(AABB::new(
+    pub fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<Aabb> {
+        Some(Aabb::new(
             Vec3::new(self.x0, self.y0, self.k - 0.0001),
             Vec3::new(self.x1, self.y1, self.k + 0.0001),
         ))
@@ -76,8 +76,8 @@ impl XZRect {
         }
     }
 
-    pub fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<AABB> {
-        Some(AABB::new(
+    pub fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<Aabb> {
+        Some(Aabb::new(
             Vec3::new(self.x0, self.k - 0.0001, self.z0),
             Vec3::new(self.x1, self.k + 0.0001, self.z1),
         ))
@@ -127,8 +127,8 @@ impl YZRect {
         }
     }
 
-    pub fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<AABB> {
-        Some(AABB::new(
+    pub fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<Aabb> {
+        Some(Aabb::new(
             Vec3::new(self.k - 0.0001, self.y0, self.z0),
             Vec3::new(self.k + 0.0001, self.y1, self.z1),
         ))

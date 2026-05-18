@@ -1,24 +1,24 @@
 use rand::prelude::*;
 use rand_chacha::ChaCha12Rng;
 
-use crate::aabb::{AABB, surrounding_box};
+use crate::aabb::{Aabb, surrounding_box};
 use crate::hittable::{HitRecord, Hittable};
 use crate::ray::Ray;
 
-pub enum BVH {
+pub enum Bvh {
     Single {
         left: Box<Hittable>,
-        bbox: AABB,
+        bbox: Aabb,
     },
     Double {
         left: Box<Hittable>,
         right: Box<Hittable>,
-        bbox: AABB,
+        bbox: Aabb,
     },
 }
 
-impl BVH {
-    pub fn new(rng: &mut impl Rng, l: &mut Vec<Hittable>, time0: f32, time1: f32) -> BVH {
+impl Bvh {
+    pub fn new(rng: &mut impl Rng, l: &mut Vec<Hittable>, time0: f32, time1: f32) -> Bvh {
         // Note: l is emptied by the this function!
         // l must be non-empty.
 
@@ -40,7 +40,7 @@ impl BVH {
             0 => panic!("BVH cannot be created with 0 nodes!"),
             1 => {
                 let left = l.pop().unwrap();
-                BVH::Single {
+                Bvh::Single {
                     bbox: left.bounding_box(time0, time1).unwrap(),
                     left: left.into(),
                 }
@@ -48,7 +48,7 @@ impl BVH {
             2 => {
                 let left = l.pop().unwrap();
                 let right = l.pop().unwrap();
-                BVH::Double {
+                Bvh::Double {
                     bbox: surrounding_box(
                         left.bounding_box(time0, time1).unwrap(),
                         right.bounding_box(time0, time1).unwrap(),
@@ -59,9 +59,9 @@ impl BVH {
             }
             _ => {
                 let rest = &mut l.split_off(l.len() / 2);
-                let left = BVH::new(rng, rest, time0, time1);
-                let right = BVH::new(rng, l, time0, time1);
-                BVH::Double {
+                let left = Bvh::new(rng, rest, time0, time1);
+                let right = Bvh::new(rng, l, time0, time1);
+                Bvh::Double {
                     bbox: surrounding_box(
                         left.bounding_box(time0, time1).unwrap(),
                         right.bounding_box(time0, time1).unwrap(),
@@ -81,10 +81,10 @@ impl BVH {
         t_max: f32,
     ) -> Option<HitRecord<'_>> {
         match self {
-            BVH::Single { left, bbox } => bbox
+            Bvh::Single { left, bbox } => bbox
                 .hit(r, t_min, t_max)
                 .then(|| left.hit(rng, r, t_min, t_max))?,
-            BVH::Double { left, right, bbox } => {
+            Bvh::Double { left, right, bbox } => {
                 if bbox.hit(r, t_min, t_max) {
                     let left_hit = left.hit(rng, r, t_min, t_max);
                     let right_hit = right.hit(rng, r, t_min, t_max);
@@ -108,9 +108,9 @@ impl BVH {
         }
     }
 
-    pub fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<AABB> {
+    pub fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<Aabb> {
         match self {
-            BVH::Single { bbox, .. } | BVH::Double { bbox, .. } => Some(bbox.clone()),
+            Bvh::Single { bbox, .. } | Bvh::Double { bbox, .. } => Some(bbox.clone()),
         }
     }
 }

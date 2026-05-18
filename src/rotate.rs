@@ -1,6 +1,6 @@
 use rand_chacha::ChaCha12Rng;
 
-use crate::aabb::AABB;
+use crate::aabb::Aabb;
 use crate::hittable::{HitRecord, Hittable};
 use crate::ray::Ray;
 use crate::vec3::Vec3;
@@ -9,7 +9,7 @@ pub struct RotateY {
     pub hittable: Box<Hittable>,
     pub sin_theta: f32,
     pub cos_theta: f32,
-    pub bbox: Option<AABB>,
+    pub bbox: Option<Aabb>,
 }
 
 impl RotateY {
@@ -38,7 +38,7 @@ impl RotateY {
                     }
                 }
             }
-            AABB::new(min, max)
+            Aabb::new(min, max)
         });
         RotateY {
             hittable: Box::new(hittable),
@@ -74,7 +74,7 @@ impl RotateY {
         })
     }
 
-    pub fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<AABB> {
+    pub fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<Aabb> {
         self.bbox.clone()
     }
 }

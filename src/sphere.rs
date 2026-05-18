@@ -1,4 +1,4 @@
-use crate::aabb::AABB;
+use crate::aabb::Aabb;
 use crate::hittable::HitRecord;
 use crate::material::Material;
 use crate::ray::Ray;
@@ -61,8 +61,8 @@ impl Sphere {
         None
     }
 
-    pub fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<AABB> {
-        Some(AABB::new(
+    pub fn bounding_box(&self, _t0: f32, _t1: f32) -> Option<Aabb> {
+        Some(Aabb::new(
             self.center - Vec3::new(self.radius, self.radius, self.radius),
             self.center + Vec3::new(self.radius, self.radius, self.radius),
         ))

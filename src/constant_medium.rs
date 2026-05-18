@@ -2,7 +2,7 @@ use rand::Rng;
 use rand_chacha::ChaCha12Rng;
 
 use crate::{
-    aabb::AABB,
+    aabb::Aabb,
     hittable::{HitRecord, Hittable},
     material::Material,
     ray::Ray,
@@ -63,7 +63,7 @@ impl ConstantMedium {
         })
     }
 
-    pub fn bounding_box(&self, t0: f32, t1: f32) -> Option<AABB> {
+    pub fn bounding_box(&self, t0: f32, t1: f32) -> Option<Aabb> {
         self.boundary.bounding_box(t0, t1)
     }
 }
