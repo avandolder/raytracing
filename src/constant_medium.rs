@@ -32,7 +32,9 @@ impl ConstantMedium {
         t_min: f32,
         t_max: f32,
     ) -> Option<HitRecord<'a>> {
-        let mut rec1 = self.boundary.hit(rng, r, f32::NEG_INFINITY, f32::INFINITY)?;
+        let mut rec1 = self
+            .boundary
+            .hit(rng, r, f32::NEG_INFINITY, f32::INFINITY)?;
         let mut rec2 = self.boundary.hit(rng, r, rec1.t + 0.0001, f32::INFINITY)?;
 
         rec1.t = rec1.t.max(t_min);

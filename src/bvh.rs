@@ -73,7 +73,13 @@ impl BVH {
         }
     }
 
-    pub fn hit(&self, rng: &mut ChaCha12Rng, r: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord<'_>> {
+    pub fn hit(
+        &self,
+        rng: &mut ChaCha12Rng,
+        r: &Ray,
+        t_min: f32,
+        t_max: f32,
+    ) -> Option<HitRecord<'_>> {
         match self {
             BVH::Single { left, bbox } => bbox
                 .hit(r, t_min, t_max)

@@ -65,9 +65,11 @@ impl Material {
                         |refracted| {
                             Ray::new(
                                 rec.p,
-                                (rng.random::<f32>() < schlick(cosine, *ref_idx))
-                                    .then_some(reflected)
-                                    .unwrap_or(refracted),
+                                if rng.random::<f32>() < schlick(cosine, *ref_idx) {
+                                    reflected
+                                } else {
+                                    refracted
+                                },
                                 r_in.time(),
                             )
                         },
