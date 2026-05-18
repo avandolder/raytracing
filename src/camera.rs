@@ -3,6 +3,7 @@ use rand::prelude::*;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 
+#[expect(unused, reason = "w is unused")]
 pub struct Camera {
     pub origin: Vec3,
     pub lower_left_corner: Vec3,
@@ -26,6 +27,7 @@ fn random_in_unit_disk(rng: &mut impl Rng) -> Vec3 {
 }
 
 impl Camera {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         lookfrom: Vec3,
         lookat: Vec3,
