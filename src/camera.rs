@@ -1,4 +1,4 @@
-use rand::prelude::*;
+use rand::{distr::uniform::Uniform, prelude::*};
 
 use crate::ray::Ray;
 use crate::vec3::Vec3;
@@ -12,8 +12,7 @@ pub struct Camera {
     pub u: Vec3,
     pub v: Vec3,
     pub w: Vec3,
-    pub time0: f32,
-    pub time1: f32,
+    pub time_sampler: Uniform<f32>,
     pub lens_radius: f32,
 }
 
@@ -58,8 +57,7 @@ impl Camera {
             u,
             v,
             w,
-            time0,
-            time1,
+            time_sampler: Uniform::new_inclusive(time0, time1).unwrap(),
             lens_radius: aperture / 2.,
         }
     }
@@ -67,7 +65,7 @@ impl Camera {
     pub fn get_ray(&self, rng: &mut impl Rng, s: f32, t: f32) -> Ray {
         let rd = self.lens_radius * random_in_unit_disk(rng);
         let offset = self.u * rd.x() + self.v * rd.y();
-        let time = self.time0 + rng.random::<f32>() * (self.time1 - self.time0);
+        let time = self.time_sampler.sample(rng);
         Ray::new(
             self.origin + offset,
             self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin - offset,
