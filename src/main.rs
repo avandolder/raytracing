@@ -127,7 +127,11 @@ fn progressive_cast(config: &Config, scene: &Scene) -> io::Result<Image> {
             (so_far + step).min(config.samples),
         );
 
-        write_image_as_pfm(File::create(format!("out-{:02}.pfm", i))?, &img)?;
+        if config.stdout {
+            write_image_as_pfm(std::io::stdout(), &img)?;
+        } else {
+            write_image_as_pfm(File::create(format!("out-{:02}.pfm", i))?, &img)?;
+        }
 
         i += 1;
         so_far += step;
@@ -183,6 +187,9 @@ struct Options {
 
     #[arg(long)]
     seed: Option<u64>,
+
+    #[arg(long)]
+    stdout: bool,
 }
 
 struct Config {
@@ -191,6 +198,7 @@ struct Config {
     aspect_ratio: f32,
     samples: u32,
     seed: Option<u64>,
+    stdout: bool,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -206,6 +214,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         aspect_ratio: options.width as f32 / options.height as f32,
         samples: options.samples,
         seed: options.seed,
+        stdout: options.stdout,
     };
 
     let mut scene_rng = config
@@ -230,7 +239,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         denoise(&mut img);
     }
 
-    write_image_as_pfm(File::create("out.pfm")?, &img)?;
+    if config.stdout {
+        write_image_as_pfm(std::io::stdout(), &img)?;
+    } else {
+        write_image_as_pfm(File::create("out.pfm")?, &img)?;
+    }
 
     Ok(())
 }
